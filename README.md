@@ -103,12 +103,14 @@ Each line is an input a conforming implementation MUST reject:
 Rejection is **uniform** (spec §9.5): an implementation MUST NOT signal
 *why* to the bearer. Through the obsigil CLI a rejection is exit code 1.
 Categories: malformed structure (separator count, degenerate half),
-unrecognized/unsupported algorithm code, non-canonical encoding
-(padding, impossible length, non-zero trailing bits, uppercase/odd
-hex), a half below the 17-byte floor, authentication failure (wrong
-key), missing or non-UUIDv7 `tid`, missing `exp`, expired `exp`,
-`aud` mismatch or empty `aud`, an empty mandate, and a manifest
-missing its required `iss`.
+unrecognized/unsupported algorithm code, an unrecognized serialization
+tag, non-canonical encoding (padding, impossible length, non-zero
+trailing bits, uppercase/odd hex), a half below the 17-byte floor,
+authentication failure (a wrong key, including a manifest sealed under
+the wrong key), a reserved clause of the wrong JSON type (bare-string
+`aud`, non-UUID `tid`, non-numeric `exp`), missing or non-UUIDv7
+`tid`, missing `exp`, expired `exp`, `aud` mismatch or empty `aud`, an
+empty mandate, and a manifest missing its required `iss`.
 
 ## Generation
 

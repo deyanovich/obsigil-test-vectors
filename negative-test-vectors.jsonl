@@ -16,3 +16,10 @@
 {"op": "verify", "token": ".0hgQsUagkAsI5N4fTY6GGwYgXymqcTfg7oPTN-3gviMpWbPjkH61laMmjLRVtDLrlheEZMgo5F5bRDhJtyyzt", "key": "mandate", "now": 1000000000, "reason": "missing exp"}
 {"op": "verify", "token": "XTq7rZeR3huTEjaPE5uqhSe5QQXYWPLSPAezRpveaYJ_NztUmTak0.", "key": "mandate", "now": 1000000000, "reason": "empty mandate"}
 {"op": "open-manifest", "token": "c1I5lYm4t84mv2LXKOSKFkwW1SQmwGv0nUSWsc80.", "reason": "manifest missing required iss"}
+{"op": "open-manifest", "token": "srmZ3ThHi8ZLh1VgK9RziafOjQkcNAuJsjLAcXWH2IbEf1zXoiAO0.", "reason": "manifest sealed under the wrong key (authentication fails)"}
+{"op": "open-manifest", "token": "XTq7rZeR3huTEjaPE5uqhSe5QQXYWPLSPAezRpveaYJ_NztUmTak=0.", "reason": "non-canonical b64: padding (manifest)"}
+{"op": "verify", "token": ".0zJGhCk-JLMKOG8yTE5bLgBK_SygdJ7wljQ11dRv7pE2r43COVCiVA-VSS_JzTQMRpPo0hcIbSviNk_9dXeSFKdKmAy2ARSwZYgUCt6XGpTukj80KpSbwUz6yKhQ", "key": "mandate", "now": 1000000000, "reason": "aud is a bare string, not an array (§11.4)"}
+{"op": "verify", "token": ".0R3u7jGnQ6qHJsksqJX0xOAgRkouP3nVCzXKPo4h_EnLhBFhYdhXzA0ngscgZk0dCB13G-rVh", "key": "mandate", "now": 1000000000, "reason": "tid is not a valid UUID"}
+{"op": "verify", "token": ".0XYlY4qjpF1Sa-70blonU7FwsoazUug3sVNBsYgUoU4lc15HIh2heClIRbPsQGE2SJ-yn_PvvJdysgwYuaxqcoSuX6v8wymeBcdiMpWYoxL0NUw", "key": "mandate", "now": 1000000000, "reason": "exp is a string, not a number"}
+{"op": "verify", "token": ".0w9yyLqpzPHS4nCgshlfxfHLMQYPyuRpZb389XWqb6N1NTqYrfXl517r4RySApLoknEyfmpzYHULSiMA8gwuoU1ygZpZVKAsftmq85h_I4uA", "key": "mandate", "now": 1000000000, "reason": "unrecognized serialization tag"}
+{"op": "verify", "token": "~06ab0d894124c235105c7ace45190c9c393d9be993e4b2072cd54b6a773dcb276790de0d4e3290f84135dfd10f9880de44194a314d1d00d9d1efbf462437469c07bce4e1ad19d7cc4bdd71a13181f005", "key": "mandate", "now": 1000000000, "reason": "non-canonical hex: odd length"}

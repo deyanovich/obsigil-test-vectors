@@ -83,11 +83,11 @@ def parse_token(token):
 
 
 def positive_via_mint(enc, mandate_fields, mandate_format, mandate_alg="0",
-                      manifest_iss=None, manifest_app=None):
+                      manifest_iss=None, manifest_app=None,
+                      manifest_format="json", manifest_alg="0"):
     """A positive minted by the CLI — for binary/text serializations whose
     octets are impractical to hand-build — with the octets extracted via
-    `open` and both directions re-checked (seal reproduces, token verifies).
-    The manifest, when present, is JSON+AES-SIV (the CLI's mint default)."""
+    `open` and both directions re-checked (seal reproduces, token verifies)."""
     reserved = ("exp", "tid", "aud", "sub", "iss")
     app = {k: v for k, v in mandate_fields.items() if k not in reserved}
     args = ["mint", "-k", "mandate", "-e", enc, "--alg", mandate_alg,
@@ -102,7 +102,8 @@ def positive_via_mint(enc, mandate_fields, mandate_format, mandate_alg="0",
     if app:
         args += ["--fields", json.dumps(app, separators=(",", ":"))]
     if manifest_iss:
-        args += ["--manifest-iss", manifest_iss]
+        args += ["--manifest-iss", manifest_iss,
+                 "--manifest-format", manifest_format, "--manifest-alg", manifest_alg]
         if manifest_app:
             args += ["--manifest-fields", json.dumps(manifest_app, separators=(",", ":"))]
     token = run(args).stdout.strip()
@@ -169,6 +170,31 @@ positives = [
     positive_via_mint("b64",
                       mandate_fields={"exp": 4000000000, "tid": TID},
                       mandate_format="cbor"),
+    # CBOR manifest + CBOR mandate, full token (both binary).
+    positive_via_mint("b64",
+                      mandate_fields={"exp": 4000000000, "tid": TID, "sub": "u42"},
+                      mandate_format="cbor",
+                      manifest_iss="auth.example", manifest_app={"theme": "dark"},
+                      manifest_format="cbor"),
+    # TOML manifest + JSON mandate, full token.
+    positive_via_mint("b64",
+                      mandate_fields={"exp": 4000000000, "tid": TID},
+                      mandate_format="json",
+                      manifest_iss="auth.example", manifest_format="toml"),
+    # Maximal diversity: JSON+SIV manifest, CBOR+GCM-SIV mandate, hex.
+    positive_via_mint("hex",
+                      mandate_fields={"exp": 4000000000, "tid": TID, "sub": "u42"},
+                      mandate_format="cbor", mandate_alg="1",
+                      manifest_iss="auth.example"),
+    # Manifest advisory exp (§11.1) + mandate iss clause (§11.2), JSON.
+    positive("b64",
+             manifest={"alg": "0", "fields": {"iss": "auth.example", "exp": 4100000000}},
+             mandate={"alg": "0", "fields": {"exp": 4000000000, "tid": TID,
+                                             "iss": "auth.example"}}),
+    # Non-ASCII (UTF-8) field values, JSON.
+    positive("b64",
+             manifest={"alg": "0", "fields": {"iss": "issüer.example"}},
+             mandate={"alg": "0", "fields": {"exp": 4000000000, "tid": TID, "sub": "ñoño"}}),
 ]
 
 # ----------------------------------------------------------------- negatives
@@ -209,6 +235,23 @@ neg("verify", mandate_token(jhex({"tid": TID})), "missing exp", key="mandate", n
 neg("verify", manifest_token(jhex({"iss": "auth.example"})), "empty mandate", key="mandate", now=1000000000)
 # manifest (open-manifest)
 neg("open-manifest", manifest_token(jhex({"role": "x"})), "manifest missing required iss")
+neg("open-manifest", manifest_token(jhex({"iss": "auth.example"}), key="mandate"),
+    "manifest sealed under the wrong key (authentication fails)")
+_mani = manifest_token(jhex({"iss": "auth.example"}))  # "<text>0."
+neg("open-manifest", _mani[:-2] + "=0.", "non-canonical b64: padding (manifest)")
+# reserved-clause type strictness (verify)
+neg("verify", mandate_token(jhex({"exp": 4000000000, "tid": TID, "aud": "api"})),
+    "aud is a bare string, not an array (§11.4)", key="mandate", now=1000000000)
+neg("verify", mandate_token(jhex({"exp": 4000000000, "tid": "not-a-uuid"})),
+    "tid is not a valid UUID", key="mandate", now=1000000000)
+neg("verify", mandate_token(jhex({"exp": "4000000000", "tid": TID})),
+    "exp is a string, not a number", key="mandate", now=1000000000)
+# unrecognized serialization tag (0x79 = 'y')
+_ytag = "79" + json.dumps({"exp": 4000000000, "tid": TID}, separators=(",", ":")).encode().hex()
+neg("verify", mandate_token(_ytag), "unrecognized serialization tag", key="mandate", now=1000000000)
+# non-canonical hex (verify)
+_hexv = mandate_token(jhex({"exp": 4000000000, "tid": TID}), enc="hex")
+neg("verify", _hexv[:-1], "non-canonical hex: odd length", key="mandate", now=1000000000)
 
 
 # --------------------------------------------------------------- self-check
