@@ -1,0 +1,18 @@
+{"op": "parse", "token": "a.b.c", "reason": "more than one separator"}
+{"op": "parse", "token": "abcdefgh", "reason": "no separator"}
+{"op": "parse", "token": ".", "reason": "both halves absent (bare separator)"}
+{"op": "parse", "token": ".0", "reason": "degenerate half: lone algorithm code, empty ciphertext"}
+{"op": "verify", "token": ".2arDYlBJMI1EFx6zkUZDJw5PZvpk-SyByzVS2p3PcsnZ5DeDU4ykPhBNd_RD5iA3kQZSjFNHQDZ0e-_RiQ3RpwHvOThrRnXzEvdcaExgfAFo", "key": "mandate", "now": 1000000000, "reason": "unrecognized algorithm code"}
+{"op": "verify", "token": ".0AAAA", "key": "mandate", "now": 1000000000, "reason": "half below the 17-byte floor"}
+{"op": "verify", "token": ".0arDYlBJMI1EFx6zkUZDJw5PZvpk-SyByzVS2p3PcsnZ5DeDU4ykPhBNd_RD5iA3kQZSjFNHQDZ0e-_RiQ3RpwHvOThrRnXzEvdcaExgfAFo=", "key": "mandate", "now": 1000000000, "reason": "non-canonical b64: padding"}
+{"op": "verify", "token": ".0arDYlBJMI1EFx6zkUZDJw5PZvpk-SyByzVS2p3PcsnZ5DeDU4ykPhBNd_RD5iA3kQZSjFNHQDZ0e-_RiQ3RpwHvOThrRnXzEvdcaExgfAF*", "key": "mandate", "now": 1000000000, "reason": "non-canonical b64: out-of-alphabet character"}
+{"op": "verify", "token": "~06AB0D894124C235105C7ACE45190C9C393D9BE993E4B2072CD54B6A773DCB276790DE0D4E3290F84135DFD10F9880DE44194A314D1D00D9D1EFBF462437469C07BCE4E1AD19D7CC4BDD71A13181F005A", "key": "mandate", "now": 1000000000, "reason": "non-canonical hex: uppercase"}
+{"op": "verify", "token": ".0arDYlBJMI1EFx6zkUZDJw5PZvpk-SyByzVS2p3PcsnZ5DeDU4ykPhBNd_RD5iA3kQZSjFNHQDZ0e-_RiQ3RpwHvOThrRnXzEvdcaExgfAFo", "key": "07070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707", "now": 1000000000, "reason": "wrong key (authentication fails)"}
+{"op": "verify", "token": ".0JnIe4EIBzqTfOR2eeQlAD_3s_AIwmXUpVTpa8Crh7ZhK-c18Yuhzfx4KLgAKx9LkkuXXffhLg2GhU0B4qAUDx4ZvHcc4FSzn6eTt67DewAg", "key": "mandate", "now": 2000000000, "reason": "expired exp"}
+{"op": "verify", "token": ".0A6KaeU4Ol4BeYNwqvXmLKVCvyqrsLa8fjK42JOOR93mBGvo0Zdh9CfsvmHHE-jdY3xlKvzRMzExI8zYcDHSiWZLks-WUUwTQgsVlJtml263apOfjqi9YCEdNB_m8ww", "key": "mandate", "now": 1000000000, "audience": "other", "reason": "audience mismatch"}
+{"op": "verify", "token": ".0dl-CKUCeWzzNIRuX9cK9J7aGJu_n0tia9JYhCzV5yZo5LBAstzk6YYv7fu5468HjYbvC566EkwIrO7Qgwi2WgxhEO6gnNxaYCdw9dt7BfT7MJ4wwijewGYs", "key": "mandate", "now": 1000000000, "reason": "empty aud array"}
+{"op": "verify", "token": ".0af3bL9Rrd2R2u0fUFc9mN1nVzUTi2WtUWdz_mCXef-LAUGA", "key": "mandate", "now": 1000000000, "reason": "missing tid"}
+{"op": "verify", "token": ".0kyo2lcHgkcTw6cylQ3cZwd5TbwpBewRsN37oDmF7pVRSHzyEzgbj6EkAQ9XXo6V3-Y_6bISbva0U8xW4cEPbsGDpaUxd-bBbLSF-5G1loIU", "key": "mandate", "now": 1000000000, "reason": "tid is not a UUIDv7"}
+{"op": "verify", "token": ".0hgQsUagkAsI5N4fTY6GGwYgXymqcTfg7oPTN-3gviMpWbPjkH61laMmjLRVtDLrlheEZMgo5F5bRDhJtyyzt", "key": "mandate", "now": 1000000000, "reason": "missing exp"}
+{"op": "verify", "token": "XTq7rZeR3huTEjaPE5uqhSe5QQXYWPLSPAezRpveaYJ_NztUmTak0.", "key": "mandate", "now": 1000000000, "reason": "empty mandate"}
+{"op": "open-manifest", "token": "c1I5lYm4t84mv2LXKOSKFkwW1SQmwGv0nUSWsc80.", "reason": "manifest missing required iss"}
