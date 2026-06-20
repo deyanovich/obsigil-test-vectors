@@ -31,7 +31,7 @@
 {"op": "verify", "token": ".0Y_xuB4UTnwPqAsIvHtOE3-1M_RYs1cR2mOLdNZ_FxIgscBkXw_eQRdMpaxdbLe5a_3mi3kCO-ruebA", "key": "mandate", "now": 1000000000, "reason": "tid is a byte string longer than 16 bytes (32)"}
 {"op": "verify", "token": ".0VpXpsTJ-nE8QWz7_GsV1aP8_Ng_-40NeVg", "key": "mandate", "now": 1000000000, "reason": "tid is an empty byte string"}
 {"op": "verify", "token": ".0kcH5_oSww7ihUYyu9pXri_PW5Hzjj_w-MJ44eoc5N8V9Yefr456Oz0UMxLeRBQo", "key": "mandate", "now": 1000000000, "reason": "exp is a text string, not an integer"}
-{"op": "verify", "token": ".04XVnz_uDaxTmkI67pl3Utc22KKqW-vtVckGYqHq-j-U5C52ef9kRxN_cWxG4", "key": "mandate", "now": 1000000000, "reason": "exp is a CBOR float, not a NumericDate integer"}
+{"op": "verify", "token": ".09fbcFOO99CzzxRVEDf-AD0qZ1NeMvVZ5rYd7zf43N_RBcxR2Fqr-2Uo", "key": "mandate", "now": 1000000000, "reason": "exp is a CBOR float, not a NumericDate integer"}
 {"op": "verify", "token": ".0z06wcVMV9686duHv_c0fbycy0lvGVtM73UIx9QdiwtOTuetLS7yDZpIzLwE", "key": "mandate", "now": 1000000000, "reason": "iss is an integer, not a text string"}
 {"op": "verify", "token": ".00_BCciKT0YENYMIbRj0VJXf-cPuDerB0o9E9ubLHzT2czrzqbOb_ahnOS3c", "key": "mandate", "now": 1000000000, "reason": "sub is an integer, not a text string"}
 {"op": "verify", "token": ".0fc9RLPTu6QYyGxIZsl0cFa2NmWiw7CLT0FEH8FzCgJ1aPWJiJurnQIpV0Nk", "key": "mandate", "now": 1000000000, "reason": "aud is an array containing a non-text element"}
@@ -42,6 +42,7 @@
 {"op": "verify", "token": ".0aKOLS6_RlTCRUY0T6wk7P4wIKR2leNqcSfxL-xISKWd1Z-sIYkyKrMrR", "key": "mandate", "now": 1000000000, "reason": "indefinite-length CBOR map"}
 {"op": "verify", "token": ".0ND8KGfmCPLWf79y5k-lYOEkOtygrY3tx3Dz7R7KSSwgpfQvdpKgro3HQ", "key": "mandate", "now": 1000000000, "reason": "trailing bytes after the CBOR map"}
 {"op": "verify", "token": ".0iRnUVOhEPMIc82fj5qvFqG8LdeuskQjeANMKaHYIUG5jJV3hbsHiXsOb", "key": "mandate", "now": 1000000000, "reason": "non-shortest CBOR length header"}
+{"op": "verify", "token": ".0G8e-NeRyz9dbnlAOblNg0Tx45mo4BQimHLhYQauGL9EZZQiFXu9Y43Zp5UZkk6kMV9UwOCe7-Vo", "key": "mandate", "now": 1000000000, "reason": "non-shortest CBOR float (f64 for an f16-representable value)"}
 {"op": "open-manifest", "token": "WoCcor2Kn6itheafyPbd-KczYbsmUhak0.", "reason": "manifest missing required iss"}
 {"op": "open-manifest", "token": "cv55m-dTtoiW2ee7GiPgv7zl-7czCdLjdMy8mLt2XA0.", "reason": "manifest sealed under the wrong key (authentication fails)"}
 {"op": "open-manifest", "token": "Ifjt1gPO2S2soNJQZjtP8Q8zDe5zvPxl2D2OuejeOQ=0.", "reason": "non-canonical b64: padding (manifest)"}

@@ -59,7 +59,16 @@ def cbor(v):
     if isinstance(v, int):
         return _head(0, v) if v >= 0 else _head(1, -1 - v)
     if isinstance(v, float):
-        return bytes([0xFB]) + struct.pack(">d", v)  # 64-bit double (negative tests)
+        # Shortest-form float (RFC 8949 §4.2): the smallest of f16/f32/f64
+        # that round-trips the value exactly (matches ciborium / fxamacker).
+        for head, fmt in ((0xF9, ">e"), (0xFA, ">f")):
+            try:
+                packed = struct.pack(fmt, v)
+            except (OverflowError, struct.error):
+                continue
+            if struct.unpack(fmt, packed)[0] == v:
+                return bytes([head]) + packed
+        return bytes([0xFB]) + struct.pack(">d", v)
     if isinstance(v, bytes):
         return _head(2, len(v)) + v
     if isinstance(v, str):
@@ -187,6 +196,13 @@ def nonshortest_len():
     return bytes([0xA2]) + cbor(-1) + bytes([0x58, 0x10]) + _tid() + _entry(-2, 4000000000)
 
 
+def nonshortest_float():
+    # An application float 1.5 encoded as an 8-byte float64; the canonical
+    # form is float16 (0xf9 0x3e00), so a non-shortest float is non-canonical.
+    f64 = bytes([0xFB]) + struct.pack(">d", 1.5)
+    return bytes([0xA3]) + _entry(-1, _tid()) + _entry(-2, 4000000000) + cbor("score") + f64
+
+
 def manifest_dup():
     # A manifest map (0xa2) with a duplicate -5 (iss) key.
     return bytes([0xA2]) + _entry(-5, "auth.example") + _entry(-5, "other")
@@ -277,6 +293,8 @@ positives = [
         mandate={"alg": "1", "fields": {"exp": 4000000000, "tid": TID, "sub": "u42",
                                         "role": "admin"}},
     ),
+    # Application float value, shortest-form float16 (RFC 8949 §4.2).
+    positive("b64", mandate={"alg": "0", "fields": {"exp": 4000000000, "tid": TID, "score": 1.5}}),
 ]
 
 # ----------------------------------------------------------------- negatives
@@ -359,6 +377,7 @@ neg("verify", raw_token(nonshortest_int()), "non-shortest CBOR integer", key="ma
 neg("verify", raw_token(indefinite_map()), "indefinite-length CBOR map", key="mandate", now=1000000000)
 neg("verify", raw_token(trailing_bytes()), "trailing bytes after the CBOR map", key="mandate", now=1000000000)
 neg("verify", raw_token(nonshortest_len()), "non-shortest CBOR length header", key="mandate", now=1000000000)
+neg("verify", raw_token(nonshortest_float()), "non-shortest CBOR float (f64 for an f16-representable value)", key="mandate", now=1000000000)
 # manifest (open-manifest)
 neg("open-manifest", manifest_token(octets({"role": "x"})), "manifest missing required iss")
 neg("open-manifest", manifest_token(octets(M_ISS), key="mandate"),
