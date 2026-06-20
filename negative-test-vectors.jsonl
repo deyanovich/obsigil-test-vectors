@@ -2,28 +2,32 @@
 {"op": "parse", "token": "abcdefgh", "reason": "no separator"}
 {"op": "parse", "token": ".", "reason": "both halves absent (bare separator)"}
 {"op": "parse", "token": ".0", "reason": "degenerate half: lone algorithm code, empty ciphertext"}
-{"op": "verify", "token": ".2arDYlBJMI1EFx6zkUZDJw5PZvpk-SyByzVS2p3PcsnZ5DeDU4ykPhBNd_RD5iA3kQZSjFNHQDZ0e-_RiQ3RpwHvOThrRnXzEvdcaExgfAFo", "key": "mandate", "now": 1000000000, "reason": "unrecognized algorithm code"}
+{"op": "verify", "token": ".2XEGe0T5Vih7NhiJsXhrEuLHX7SqEoSOY4PSx91evs1qMZav-laAa5Os", "key": "mandate", "now": 1000000000, "reason": "unrecognized algorithm code"}
 {"op": "verify", "token": ".0AAAA", "key": "mandate", "now": 1000000000, "reason": "half below the 17-byte floor"}
-{"op": "verify", "token": ".0arDYlBJMI1EFx6zkUZDJw5PZvpk-SyByzVS2p3PcsnZ5DeDU4ykPhBNd_RD5iA3kQZSjFNHQDZ0e-_RiQ3RpwHvOThrRnXzEvdcaExgfAFo=", "key": "mandate", "now": 1000000000, "reason": "non-canonical b64: padding"}
-{"op": "verify", "token": ".0arDYlBJMI1EFx6zkUZDJw5PZvpk-SyByzVS2p3PcsnZ5DeDU4ykPhBNd_RD5iA3kQZSjFNHQDZ0e-_RiQ3RpwHvOThrRnXzEvdcaExgfAF*", "key": "mandate", "now": 1000000000, "reason": "non-canonical b64: out-of-alphabet character"}
-{"op": "verify", "token": "~06AB0D894124C235105C7ACE45190C9C393D9BE993E4B2072CD54B6A773DCB276790DE0D4E3290F84135DFD10F9880DE44194A314D1D00D9D1EFBF462437469C07BCE4E1AD19D7CC4BDD71A13181F005A", "key": "mandate", "now": 1000000000, "reason": "non-canonical hex: uppercase"}
-{"op": "verify", "token": ".0arDYlBJMI1EFx6zkUZDJw5PZvpk-SyByzVS2p3PcsnZ5DeDU4ykPhBNd_RD5iA3kQZSjFNHQDZ0e-_RiQ3RpwHvOThrRnXzEvdcaExgfAFo", "key": "07070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707", "now": 1000000000, "reason": "wrong key (authentication fails)"}
-{"op": "verify", "token": ".0JnIe4EIBzqTfOR2eeQlAD_3s_AIwmXUpVTpa8Crh7ZhK-c18Yuhzfx4KLgAKx9LkkuXXffhLg2GhU0B4qAUDx4ZvHcc4FSzn6eTt67DewAg", "key": "mandate", "now": 2000000000, "reason": "expired exp"}
-{"op": "verify", "token": ".0A6KaeU4Ol4BeYNwqvXmLKVCvyqrsLa8fjK42JOOR93mBGvo0Zdh9CfsvmHHE-jdY3xlKvzRMzExI8zYcDHSiWZLks-WUUwTQgsVlJtml263apOfjqi9YCEdNB_m8ww", "key": "mandate", "now": 1000000000, "audience": "other", "reason": "audience mismatch"}
-{"op": "verify", "token": ".0dl-CKUCeWzzNIRuX9cK9J7aGJu_n0tia9JYhCzV5yZo5LBAstzk6YYv7fu5468HjYbvC566EkwIrO7Qgwi2WgxhEO6gnNxaYCdw9dt7BfT7MJ4wwijewGYs", "key": "mandate", "now": 1000000000, "reason": "empty aud array"}
-{"op": "verify", "token": ".0af3bL9Rrd2R2u0fUFc9mN1nVzUTi2WtUWdz_mCXef-LAUGA", "key": "mandate", "now": 1000000000, "reason": "missing tid"}
-{"op": "verify", "token": ".0kyo2lcHgkcTw6cylQ3cZwd5TbwpBewRsN37oDmF7pVRSHzyEzgbj6EkAQ9XXo6V3-Y_6bISbva0U8xW4cEPbsGDpaUxd-bBbLSF-5G1loIU", "key": "mandate", "now": 1000000000, "reason": "tid is not a UUIDv7"}
-{"op": "verify", "token": ".0xyIJO__ZRaeAsDMaLl4rVne9Vb_kZhHA8S-iu3zIVEcjiG66IvMVsBvuiufysk-BqMd6nj-Cd_RXDN6NVNFEKkf8kjPhlBFTejFYy7AtJDg", "key": "mandate", "now": 1000000000, "reason": "tid is version 7 but not the RFC 4122 variant (§12.3)"}
-{"op": "verify", "token": ".0hgQsUagkAsI5N4fTY6GGwYgXymqcTfg7oPTN-3gviMpWbPjkH61laMmjLRVtDLrlheEZMgo5F5bRDhJtyyzt", "key": "mandate", "now": 1000000000, "reason": "missing exp"}
-{"op": "verify", "token": "XTq7rZeR3huTEjaPE5uqhSe5QQXYWPLSPAezRpveaYJ_NztUmTak0.", "key": "mandate", "now": 1000000000, "reason": "empty mandate"}
-{"op": "open-manifest", "token": "c1I5lYm4t84mv2LXKOSKFkwW1SQmwGv0nUSWsc80.", "reason": "manifest missing required iss"}
-{"op": "open-manifest", "token": "srmZ3ThHi8ZLh1VgK9RziafOjQkcNAuJsjLAcXWH2IbEf1zXoiAO0.", "reason": "manifest sealed under the wrong key (authentication fails)"}
-{"op": "open-manifest", "token": "XTq7rZeR3huTEjaPE5uqhSe5QQXYWPLSPAezRpveaYJ_NztUmTak=0.", "reason": "non-canonical b64: padding (manifest)"}
-{"op": "verify", "token": ".0zJGhCk-JLMKOG8yTE5bLgBK_SygdJ7wljQ11dRv7pE2r43COVCiVA-VSS_JzTQMRpPo0hcIbSviNk_9dXeSFKdKmAy2ARSwZYgUCt6XGpTukj80KpSbwUz6yKhQ", "key": "mandate", "now": 1000000000, "reason": "aud is a bare string, not an array (§11.4)"}
-{"op": "verify", "token": ".0R3u7jGnQ6qHJsksqJX0xOAgRkouP3nVCzXKPo4h_EnLhBFhYdhXzA0ngscgZk0dCB13G-rVh", "key": "mandate", "now": 1000000000, "reason": "tid is not a valid UUID"}
-{"op": "verify", "token": ".0XYlY4qjpF1Sa-70blonU7FwsoazUug3sVNBsYgUoU4lc15HIh2heClIRbPsQGE2SJ-yn_PvvJdysgwYuaxqcoSuX6v8wymeBcdiMpWYoxL0NUw", "key": "mandate", "now": 1000000000, "reason": "exp is a string, not a number"}
-{"op": "verify", "token": ".0w9yyLqpzPHS4nCgshlfxfHLMQYPyuRpZb389XWqb6N1NTqYrfXl517r4RySApLoknEyfmpzYHULSiMA8gwuoU1ygZpZVKAsftmq85h_I4uA", "key": "mandate", "now": 1000000000, "reason": "unrecognized serialization tag"}
-{"op": "verify", "token": "~06ab0d894124c235105c7ace45190c9c393d9be993e4b2072cd54b6a773dcb276790de0d4e3290f84135dfd10f9880de44194a314d1d00d9d1efbf462437469c07bce4e1ad19d7cc4bdd71a13181f005", "key": "mandate", "now": 1000000000, "reason": "non-canonical hex: odd length"}
-{"op": "verify", "token": ".0xvpaVexbcD36Q0AYIo_3lpOSFwUzFH95voUFQhKBgooAGx3fJsGlTMqH7JB5ZIFO6rGp6dHvI_qIYzFEGLz_Ghcb4_hhtbKypa2wBz8phRt4K_q32U8TXw", "key": "mandate", "now": 1000000000, "reason": "duplicate reserved name exp (§9.9)"}
-{"op": "verify", "token": ".0-UveN5YpmrKY77CiwMSBx-OePsQRJ81ft9TJ-5m34I9dcuMg3A6amHIEyGuSGFn1XY4C_epq5HFFDOljf6Ny_tfwL0JFJuYFh1oY6QY6pFKUrMB0yj9Enoq7-E3drWMo3L64d3yQAUOwcE4DCVduUHTgBBvmf4l0hEXhpUA", "key": "mandate", "now": 1000000000, "reason": "duplicate reserved name tid (§9.9)"}
-{"op": "verify", "token": ".0uvCqiO71yrdzC10oOzkYSvHCWEU3abfXonI0pvHHGiNqwlEjP1K3nnMV1UAS_BzknUEDuZ-9_87zmDD2weF5QRCTjsjh0Sg4M7A", "key": "mandate", "now": 2000000000, "leeway": 9999999999, "reason": "excessive leeway must not extend exp (§9.9)"}
+{"op": "verify", "token": ".0XEGe0T5Vih7NhiJsXhrEuLHX7SqEoSOY4PSx91evs1qMZav-laAa5Os=", "key": "mandate", "now": 1000000000, "reason": "non-canonical b64: padding"}
+{"op": "verify", "token": ".0XEGe0T5Vih7NhiJsXhrEuLHX7SqEoSOY4PSx91evs1qMZav-laAa5O*", "key": "mandate", "now": 1000000000, "reason": "non-canonical b64: out-of-alphabet character"}
+{"op": "verify", "token": "~05C419ED13E558A1ECD86226C5E1AC4B8B1D7ED2A84A12398E0F4B1F757AFB35A8C65ABFE95A01AE4EB", "key": "mandate", "now": 1000000000, "reason": "non-canonical hex: uppercase"}
+{"op": "verify", "token": "~05c419ed13e558a1ecd86226c5e1ac4b8b1d7ed2a84a12398e0f4b1f757afb35a8c65abfe95a01ae4e", "key": "mandate", "now": 1000000000, "reason": "non-canonical hex: odd length"}
+{"op": "verify", "token": ".0XEGe0T5Vih7NhiJsXhrEuLHX7SqEoSOY4PSx91evs1qMZav-laAa5Os", "key": "07070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707", "now": 1000000000, "reason": "wrong key (authentication fails)"}
+{"op": "verify", "token": ".0yA3J4qgDgMHcVxnNGc5lYDelFWCwWy3rPioH0vdcGhKZ633iLg_B9vw", "key": "mandate", "now": 2000000000, "reason": "expired exp"}
+{"op": "verify", "token": ".0VQNd23tCmzc8zpcEVRjmyXqzuemo_JDgdpeP7ybW9j3G_iyJKPCc0ya8r-aByVo", "key": "mandate", "now": 1000000000, "audience": "other", "reason": "audience mismatch"}
+{"op": "verify", "token": ".0OONlSwf3-8gVhhuvCpLs76tY4dk-MovZ9u3rA-5ho-piEwpRH11y-QEbkQ", "key": "mandate", "now": 1000000000, "reason": "empty aud array"}
+{"op": "verify", "token": ".0iyh7I6MKKmFJ3K7vr8Y16iH3uUEoRRk", "key": "mandate", "now": 1000000000, "reason": "missing tid"}
+{"op": "verify", "token": ".0CQyylZaoeHGc7CsNagYFz9lOVZPem9JXEYWhOJWRNjOvydyo7nXnv7g", "key": "mandate", "now": 1000000000, "reason": "tid is not a UUIDv7 (version 0)"}
+{"op": "verify", "token": ".0e5Ue1Vkxw0_ZNq-4GV_y3XaJVsBKKbYSeUv7z-6p1Z4KFLdjhMuCwEw", "key": "mandate", "now": 1000000000, "reason": "tid is version 7 but not the RFC 4122 variant (§11.3)"}
+{"op": "verify", "token": ".0sxZ-uoJUoeNDCAssmZhHtVrl0FAJpCI6MPzb1Be7TyybUW0", "key": "mandate", "now": 1000000000, "reason": "missing exp"}
+{"op": "verify", "token": "Ifjt1gPO2S2soNJQZjtP8Q8zDe5zvPxl2D2OuejeOQ0.", "key": "mandate", "now": 1000000000, "reason": "empty mandate"}
+{"op": "verify", "token": ".0U12pxd9KKJ4wpt8d68XTIeH5ol8NGEDQbzgGU60GkbewQ4RDXRrHbJ9Ah-uT2A", "key": "mandate", "now": 1000000000, "reason": "aud is a text string, not an array (§11.4)"}
+{"op": "verify", "token": ".0_FQ8vdXlf36kACAKrictmkBudA__goAbemRv5_fCnz4N6A", "key": "mandate", "now": 1000000000, "reason": "tid is a text string, not a 16-byte byte string"}
+{"op": "verify", "token": ".0m-61kcqoKEE4J1k6a3ugwGtAkURiwFwSnEhpjykVAw-n", "key": "mandate", "now": 1000000000, "reason": "tid is a byte string but not 16 bytes"}
+{"op": "verify", "token": ".0kcH5_oSww7ihUYyu9pXri_PW5Hzjj_w-MJ44eoc5N8V9Yefr456Oz0UMxLeRBQo", "key": "mandate", "now": 1000000000, "reason": "exp is a text string, not an integer"}
+{"op": "verify", "token": ".08-YqrUFXzP4VCPhEYM4J6G14RxzfefD55a8p_Q3itG4J1LtDIPQFUCmxCg", "key": "mandate", "now": 1000000000, "reason": "unrecognized negative key fails closed"}
+{"op": "verify", "token": ".0nZb27hubmGRCFhvLM4klqCW7CyGM00CcK4zpKTbRc_RPUH9aUEtb4RZ5yg", "key": "mandate", "now": 1000000000, "reason": "duplicate CBOR map key"}
+{"op": "verify", "token": ".0b4n06n04YtXu-0CnNQbnyhULfYCfxMMommud4jokIMJnAKJJyiOFZuo", "key": "mandate", "now": 1000000000, "reason": "CBOR map keys out of canonical order"}
+{"op": "verify", "token": ".0I9k9jkWbtJ34g3Tu0cIqspjejyw5BBJaYx-D72isE0f0470C6cRgTLVvoI9L", "key": "mandate", "now": 1000000000, "reason": "non-shortest CBOR integer"}
+{"op": "verify", "token": ".0aKOLS6_RlTCRUY0T6wk7P4wIKR2leNqcSfxL-xISKWd1Z-sIYkyKrMrR", "key": "mandate", "now": 1000000000, "reason": "indefinite-length CBOR map"}
+{"op": "verify", "token": ".0ND8KGfmCPLWf79y5k-lYOEkOtygrY3tx3Dz7R7KSSwgpfQvdpKgro3HQ", "key": "mandate", "now": 1000000000, "reason": "trailing bytes after the CBOR map"}
+{"op": "open-manifest", "token": "WoCcor2Kn6itheafyPbd-KczYbsmUhak0.", "reason": "manifest missing required iss"}
+{"op": "open-manifest", "token": "cv55m-dTtoiW2ee7GiPgv7zl-7czCdLjdMy8mLt2XA0.", "reason": "manifest sealed under the wrong key (authentication fails)"}
+{"op": "open-manifest", "token": "Ifjt1gPO2S2soNJQZjtP8Q8zDe5zvPxl2D2OuejeOQ=0.", "reason": "non-canonical b64: padding (manifest)"}
+{"op": "verify", "token": ".0_zZzmoyJ7TKxjoARhgm4aiakN7wUwReYijx0uDvyeK6ndw6bzjj3", "key": "mandate", "now": 2000000000, "leeway": 9999999999, "reason": "excessive leeway must not extend exp (§9.9)"}

@@ -48,14 +48,15 @@ no Extract; spec §5.1).
 
 ## Positive vectors
 
-Each line pins the per-half **octets** (`tag || serialized-fields`, the
-normative input) to one exact **token**. The mapping is bidirectional —
-a sealer and an opener both reproduce it without a serializer:
+Each line pins the per-half **octets** (a half's canonical CBOR map,
+the normative input) to one exact **token**. The mapping is
+bidirectional — a sealer and an opener both reproduce it without a
+serializer (the octets are sealed as given):
 
 ```json
 {"encoding": "b64",
- "manifest": {"alg": "0", "octets": "6a7b...", "fields": {"iss": "auth.example"}},
- "mandate":  {"alg": "0", "octets": "6a7b...", "fields": {"exp": 4000000000, "tid": "019e..."}},
+ "manifest": {"alg": "0", "octets": "a124...", "fields": {"iss": "auth.example"}},
+ "mandate":  {"alg": "0", "octets": "a220...", "fields": {"exp": 4000000000, "tid": "019e..."}},
  "token": "<manifest>0.0<mandate>"}
 ```
 
@@ -63,9 +64,11 @@ a sealer and an opener both reproduce it without a serializer:
 - `manifest` / `mandate` — each optional; an absent half is omitted
   (manifest-only and mandate-only tokens are valid). `alg` is the
   one-character algorithm code (`0` AES-SIV, `1` AES-GCM-SIV). `octets`
-  is the hex of the half's plaintext `tag || serialized-fields` (tag:
-  `6a` JSON, `74` TOML, `63` CBOR). `fields` is a **non-normative**
-  decode for the reader.
+  is the hex of the half's plaintext: a **canonical CBOR map** (RFC 8949
+  §4.2) with reserved fields at negative integer keys (`tid` -1, `exp`
+  -2, `aud` -3, `sub` -4, `iss` -5) and application data at non-negative
+  integer / text-string keys. `fields` is a **non-normative** decode for
+  the reader. `tid` is carried as its 16-byte binary form (§11.3).
 - `token` — the exact token string.
 
 A conforming implementation checks whichever direction it performs:
@@ -106,17 +109,19 @@ Each line is an input a conforming implementation MUST reject:
 Rejection is **uniform** (spec §9.5): an implementation MUST NOT signal
 *why* to the bearer. Through the obsigil CLI a rejection is exit code 1.
 Categories: malformed structure (separator count, degenerate half),
-unrecognized/unsupported algorithm code, an unrecognized serialization
-tag, non-canonical encoding (padding, impossible length, non-zero
-trailing bits, uppercase/odd hex), a half below the 17-byte floor,
-authentication failure (a wrong key, including a manifest sealed under
-the wrong key), a reserved clause of the wrong JSON type (bare-string
-`aud`, non-UUID `tid`, non-numeric `exp`), missing or non-UUIDv7 `tid`
-(including a version-7 value carrying a non-RFC-4122 variant), a
-duplicate reserved name, missing `exp`, expired `exp` (including a
-`now` past `exp` that an over-large but bounded `leeway` cannot
-extend), `aud` mismatch or empty `aud`, an empty mandate, and a
-manifest missing its required `iss`.
+unrecognized/unsupported algorithm code, non-canonical text encoding
+(padding, impossible length, non-zero trailing bits, uppercase/odd
+hex), a half below the 17-byte floor, authentication failure (a wrong
+key, including a manifest sealed under the wrong key), non-canonical
+CBOR (a duplicate map key, keys out of canonical order, a non-shortest
+integer, an indefinite length, trailing bytes), an unrecognized
+negative key (obsigil's namespace — rejected fail-closed), a reserved
+field of the wrong CBOR type (text `aud` instead of an array, a `tid`
+that is not a 16-byte byte string, text `exp`), missing or non-UUIDv7
+`tid` (including a version-7 value carrying a non-RFC-4122 variant),
+missing `exp`, expired `exp` (including a `now` past `exp` that an
+over-large but bounded `leeway` cannot extend), `aud` mismatch or empty
+`aud`, an empty mandate, and a manifest missing its required `iss`.
 
 ## Generation
 

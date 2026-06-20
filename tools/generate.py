@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-"""Generate obsigil test vectors from the reference CLI.
+"""Generate obsigil test vectors for the canonical-CBOR model.
 
-For each positive vector we choose the per-half octets, `seal` them with
-the obsigil CLI, and assemble the token; for each negative we craft an
-input that must be rejected. Every line is self-checked against the CLI
-before it is written (positives reproduce bidirectionally and verify;
-negatives exit non-zero).
+Both halves of a token are a single canonical CBOR map (RFC 8949 §4.2):
+reserved fields at negative integer keys (tid -1, exp -2, aud -3, sub -4,
+iss -5), application data at non-negative integer / text-string keys, keys
+sorted by their encoded bytes, integers and lengths shortest-form, definite
+lengths. We build the per-half octets with a tiny canonical encoder, `seal`
+them with the obsigil CLI, and assemble the token; every line is self-checked
+against the CLI before it is written (positives reproduce and verify / open;
+negatives exit non-zero). Because the verifier now rejects non-canonical
+CBOR, a positive whose octets are not canonical fails its own self-check.
 
 Usage:  OBSIGIL_BIN=/path/to/obsigil python3 tools/generate.py
 """
@@ -13,35 +17,80 @@ Usage:  OBSIGIL_BIN=/path/to/obsigil python3 tools/generate.py
 import json
 import os
 import subprocess
+import uuid
 
 BIN = os.environ.get("OBSIGIL_BIN", "obsigil")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-TAG = {"json": "6a", "toml": "74", "cbor": "63"}
 TID = "019ed29a-378d-72f0-b462-4929cd2bfcad"  # a fixed UUIDv7
 NIL = "00000000-0000-0000-0000-000000000000"  # version 0 — not a v7
 # Version field 7 but variant nibble 0 (NCS, 0b00) — not a well-formed UUIDv7
-# (spec §12.3 requires version 7 AND the RFC 4122 variant 0b10).
+# (spec §11.3 requires version 7 AND the RFC 4122 variant 0b10).
 TID_BADVAR = "019ed29a-378d-72f0-0462-4929cd2bfcad"
 
+# Reserved field -> negative integer key (spec §11, §7).
+RKEY = {"tid": -1, "exp": -2, "aud": -3, "sub": -4, "iss": -5}
+RESERVED = set(RKEY)
 
-def run(args, check=True):
-    r = subprocess.run([BIN, *args], capture_output=True, text=True)
+
+# ------------------------------------------------------------- canonical CBOR
+def _head(major, n):
+    """A CBOR head: major type (0-7) << 5 | shortest-form argument `n`."""
+    if n < 24:
+        return bytes([(major << 5) | n])
+    if n < 0x100:
+        return bytes([(major << 5) | 24, n])
+    if n < 0x10000:
+        return bytes([(major << 5) | 25]) + n.to_bytes(2, "big")
+    if n < 0x1_0000_0000:
+        return bytes([(major << 5) | 26]) + n.to_bytes(4, "big")
+    return bytes([(major << 5) | 27]) + n.to_bytes(8, "big")
+
+
+def cbor(v):
+    """Canonical CBOR (RFC 8949 §4.2) for the value types obsigil uses."""
+    if isinstance(v, bool):  # bool is a subclass of int — test it first
+        return bytes([0xF5 if v else 0xF4])
+    if isinstance(v, int):
+        return _head(0, v) if v >= 0 else _head(1, -1 - v)
+    if isinstance(v, bytes):
+        return _head(2, len(v)) + v
+    if isinstance(v, str):
+        b = v.encode("utf-8")
+        return _head(3, len(b)) + b
+    if isinstance(v, list):
+        return _head(4, len(v)) + b"".join(cbor(x) for x in v)
+    if isinstance(v, dict):
+        items = sorted((cbor(k), cbor(val)) for k, val in v.items())
+        return _head(5, len(items)) + b"".join(k + val for k, val in items)
+    raise TypeError(f"unsupported CBOR value: {v!r}")
+
+
+def reserved_map(fields):
+    """A CBOR map dict from a logical fields dict: reserved fields at their
+    negative integer keys (tid as 16-byte binary), app fields at text keys."""
+    m = {}
+    if "tid" in fields:
+        m[RKEY["tid"]] = uuid.UUID(fields["tid"]).bytes
+    for name in ("exp", "aud", "sub", "iss"):
+        if name in fields:
+            m[RKEY[name]] = fields[name]
+    for k, val in fields.items():
+        if k not in RESERVED:
+            m[k] = val
+    return m
+
+
+def octets(fields):
+    return cbor(reserved_map(fields)).hex()
+
+
+# ------------------------------------------------------------------- CLI glue
+def run(args, check=True, stdin=None):
+    r = subprocess.run([BIN, *args], capture_output=True, text=True, input=stdin)
     if check and r.returncode != 0:
         raise SystemExit(f"CLI failed ({r.returncode}): obsigil {' '.join(args)}\n{r.stderr}")
     return r
-
-
-def jhex(fields, fmt="json"):
-    """tag || compact-JSON (serde_json layout), as hex."""
-    s = json.dumps(fields, separators=(",", ":"), ensure_ascii=False)
-    return TAG[fmt] + s.encode("utf-8").hex()
-
-
-def jhex_raw(raw, fmt="json"):
-    """tag || raw serialized bytes, as hex — for inputs json.dumps cannot
-    express, such as an object with a duplicate key."""
-    return TAG[fmt] + raw.encode("utf-8").hex()
 
 
 def seal(octets_hex, key, alg, enc):
@@ -49,91 +98,27 @@ def seal(octets_hex, key, alg, enc):
 
 
 def open_half(text, key, alg, enc):
-    r = run(["open", "--half", text, "-k", key, "--alg", alg, "-e", enc], check=False)
+    # `--half=...` (equals form) so a ciphertext text starting with `-`/`_`
+    # (the b64url alphabet) is taken as a value, not parsed as a flag.
+    r = run(["open", f"--half={text}", "-k", key, "--alg", alg, "-e", enc], check=False)
     return r.stdout.strip() if r.returncode == 0 else None
 
 
+# Token-positional ops read the token from stdin (`-`), so a token starting
+# with `-` (the b64url alphabet) is never mistaken for a flag.
 def verify_ok(token, audience=None):
-    args = ["verify", token, "-k", "mandate", "--now", "1000000000"]
+    args = ["verify", "-", "-k", "mandate", "--now", "1000000000"]
     if audience:
         args += ["-a", audience]
-    return run(args, check=False).returncode == 0
+    return run(args, check=False, stdin=token).returncode == 0
+
+
+def open_manifest_ok(token):
+    return run(["open-manifest", "-"], check=False, stdin=token).returncode == 0
 
 
 def sep(enc):
     return "." if enc == "b64" else "~"
-
-
-def positive(enc, manifest=None, mandate=None):
-    vec = {"encoding": enc}
-    left = right = ""
-    if manifest:
-        oct_ = jhex(manifest["fields"])
-        text = seal(oct_, "manifest", manifest["alg"], enc)
-        assert open_half(text, "manifest", manifest["alg"], enc) == oct_
-        vec["manifest"] = {"alg": manifest["alg"], "octets": oct_, "fields": manifest["fields"]}
-        left = text + manifest["alg"]
-    if mandate:
-        oct_ = jhex(mandate["fields"])
-        text = seal(oct_, "mandate", mandate["alg"], enc)
-        assert open_half(text, "mandate", mandate["alg"], enc) == oct_
-        vec["mandate"] = {"alg": mandate["alg"], "octets": oct_, "fields": mandate["fields"]}
-        right = mandate["alg"] + text
-    vec["token"] = left + sep(enc) + right
-    # A positive with a complete mandate must actually verify.
-    if mandate and {"exp", "tid"} <= mandate["fields"].keys():
-        aud = mandate["fields"].get("aud")
-        assert verify_ok(vec["token"], aud[0] if aud else None), f"should verify: {vec['token']}"
-    return vec
-
-
-def parse_token(token):
-    return json.loads(run(["parse", token]).stdout)
-
-
-def positive_via_mint(enc, mandate_fields, mandate_format, mandate_alg="0",
-                      manifest_iss=None, manifest_app=None,
-                      manifest_format="json", manifest_alg="0"):
-    """A positive minted by the CLI — for binary/text serializations whose
-    octets are impractical to hand-build — with the octets extracted via
-    `open` and both directions re-checked (seal reproduces, token verifies)."""
-    reserved = ("exp", "tid", "aud", "sub", "iss")
-    app = {k: v for k, v in mandate_fields.items() if k not in reserved}
-    args = ["mint", "-k", "mandate", "-e", enc, "--alg", mandate_alg,
-            "--format", mandate_format, "--tid", mandate_fields["tid"],
-            "--exp", str(mandate_fields["exp"])]
-    if "aud" in mandate_fields:
-        args += ["--aud", ",".join(mandate_fields["aud"])]
-    if "sub" in mandate_fields:
-        args += ["--sub", mandate_fields["sub"]]
-    if "iss" in mandate_fields:
-        args += ["--iss", mandate_fields["iss"]]
-    if app:
-        args += ["--fields", json.dumps(app, separators=(",", ":"))]
-    if manifest_iss:
-        args += ["--manifest-iss", manifest_iss,
-                 "--manifest-format", manifest_format, "--manifest-alg", manifest_alg]
-        if manifest_app:
-            args += ["--manifest-fields", json.dumps(manifest_app, separators=(",", ":"))]
-    token = run(args).stdout.strip()
-
-    parsed = parse_token(token)
-    vec = {"encoding": enc}
-    if parsed.get("manifest"):
-        h = parsed["manifest"]
-        oct_ = open_half(h["text"], "manifest", h["alg"], enc)
-        assert oct_ is not None and seal(oct_, "manifest", h["alg"], enc) == h["text"]
-        vec["manifest"] = {"alg": h["alg"], "octets": oct_,
-                           "fields": {"iss": manifest_iss, **(manifest_app or {})}}
-    if parsed.get("mandate"):
-        h = parsed["mandate"]
-        oct_ = open_half(h["text"], "mandate", h["alg"], enc)
-        assert oct_ is not None and seal(oct_, "mandate", h["alg"], enc) == h["text"]
-        vec["mandate"] = {"alg": h["alg"], "octets": oct_, "fields": mandate_fields}
-    vec["token"] = token
-    aud = mandate_fields.get("aud")
-    assert verify_ok(token, aud[0] if aud else None), f"should verify: {token}"
-    return vec
 
 
 def mandate_token(octets_hex, alg="0", enc="b64", key="mandate"):
@@ -144,66 +129,122 @@ def manifest_token(octets_hex, alg="0", enc="b64", key="manifest"):
     return seal(octets_hex, key, alg, enc) + alg + sep(enc)
 
 
+def map_token(map_dict, alg="0", enc="b64", key="mandate"):
+    """A mandate-only token whose plaintext is the canonical CBOR of an
+    explicit int/text-keyed map — for wrong-type and unknown-key cases."""
+    return mandate_token(cbor(map_dict).hex(), alg, enc, key)
+
+
+# Deliberately NON-canonical CBOR plaintexts (raw bytes, bypassing `cbor`'s
+# canonical map encoding), each a mandate-only token the verifier must reject.
+def _entry(k, v):
+    return cbor(k) + cbor(v)
+
+
+def _tid():
+    return uuid.UUID(TID).bytes
+
+
+def raw_token(raw_bytes, alg="0", enc="b64", key="mandate"):
+    return mandate_token(raw_bytes.hex(), alg, enc, key)
+
+
+def dup_key():
+    # 3-pair map (0xa3) with a duplicate -2 (exp) key.
+    return bytes([0xA3]) + _entry(-1, _tid()) + _entry(-2, 4000000000) + _entry(-2, 1)
+
+
+def unsorted_keys():
+    # -2 (0x21) before -1 (0x20): canonical requires -1 first.
+    return bytes([0xA2]) + _entry(-2, 4000000000) + _entry(-1, _tid())
+
+
+def nonshortest_int():
+    # exp 4000000000 in an 8-byte int head (0x1b) rather than the 4-byte (0x1a).
+    exp_long = bytes([0x1B]) + (4000000000).to_bytes(8, "big")
+    return bytes([0xA2]) + _entry(-1, _tid()) + cbor(-2) + exp_long
+
+
+def indefinite_map():
+    # 0xbf ... 0xff: indefinite length; canonical requires definite.
+    return bytes([0xBF]) + _entry(-1, _tid()) + _entry(-2, 4000000000) + bytes([0xFF])
+
+
+def trailing_bytes():
+    return cbor(reserved_map(MAND)) + bytes([0x00])
+
+
+# ----------------------------------------------------------- positive builder
+def positive(enc, manifest=None, mandate=None):
+    """A positive vector. Octets are canonical CBOR; the assembled token is
+    self-checked — a present mandate must verify and a present manifest must
+    open, both of which the verifier/opener reject if non-canonical."""
+    vec = {"encoding": enc}
+    left = right = ""
+    if manifest:
+        oct_ = octets(manifest["fields"])
+        text = seal(oct_, "manifest", manifest["alg"], enc)
+        assert open_half(text, "manifest", manifest["alg"], enc) == oct_
+        vec["manifest"] = {"alg": manifest["alg"], "octets": oct_, "fields": manifest["fields"]}
+        left = text + manifest["alg"]
+    if mandate:
+        oct_ = octets(mandate["fields"])
+        text = seal(oct_, "mandate", mandate["alg"], enc)
+        assert open_half(text, "mandate", mandate["alg"], enc) == oct_
+        vec["mandate"] = {"alg": mandate["alg"], "octets": oct_, "fields": mandate["fields"]}
+        right = mandate["alg"] + text
+    vec["token"] = left + sep(enc) + right
+    if mandate and {"exp", "tid"} <= mandate["fields"].keys():
+        aud = mandate["fields"].get("aud")
+        assert verify_ok(vec["token"], aud[0] if aud else None), f"should verify: {vec['token']}"
+    if manifest:
+        assert open_manifest_ok(vec["token"]), f"manifest should open: {vec['token']}"
+    return vec
+
+
 # ----------------------------------------------------------------- positives
+M_ISS = {"iss": "auth.example"}
+MAND = {"exp": 4000000000, "tid": TID}
+
 positives = [
-    positive("b64",
-             manifest={"alg": "0", "fields": {"iss": "auth.example"}},
-             mandate={"alg": "0", "fields": {"exp": 4000000000, "tid": TID}}),
-    positive("hex",
-             manifest={"alg": "0", "fields": {"iss": "auth.example"}},
-             mandate={"alg": "0", "fields": {"exp": 4000000000, "tid": TID}}),
-    positive("b64",
-             manifest={"alg": "0", "fields": {"iss": "auth.example"}},
-             mandate={"alg": "1", "fields": {"exp": 4000000000, "tid": TID}}),
-    positive("b64",
-             manifest={"alg": "1", "fields": {"iss": "auth.example"}},
-             mandate={"alg": "1", "fields": {"exp": 4000000000, "tid": TID}}),
-    positive("b64", manifest={"alg": "0", "fields": {"iss": "auth.example"}}),
-    positive("b64", mandate={"alg": "0", "fields": {"exp": 4000000000, "tid": TID}}),
-    positive("hex", mandate={"alg": "1", "fields": {"exp": 4000000000, "tid": TID}}),
-    positive("b64",
-             manifest={"alg": "0", "fields": {"iss": "auth.example", "theme": "dark"}},
-             mandate={"alg": "0", "fields": {"exp": 4000000000, "tid": TID,
-                                             "aud": ["api", "billing"], "sub": "u42",
-                                             "role": "admin"}}),
-    # CBOR mandate (tag c; tid as 16-byte binary, §11.3) + JSON manifest.
-    positive_via_mint("b64",
-                      mandate_fields={"exp": 4000000000, "tid": TID, "sub": "u42", "role": "admin"},
-                      mandate_format="cbor",
-                      manifest_iss="auth.example", manifest_app={"theme": "dark"}),
-    # TOML mandate (tag t), mandate-only.
-    positive_via_mint("b64",
-                      mandate_fields={"exp": 4000000000, "tid": TID},
-                      mandate_format="toml"),
-    # CBOR mandate, mandate-only (forward form, binary tid).
-    positive_via_mint("b64",
-                      mandate_fields={"exp": 4000000000, "tid": TID},
-                      mandate_format="cbor"),
-    # CBOR manifest + CBOR mandate, full token (both binary).
-    positive_via_mint("b64",
-                      mandate_fields={"exp": 4000000000, "tid": TID, "sub": "u42"},
-                      mandate_format="cbor",
-                      manifest_iss="auth.example", manifest_app={"theme": "dark"},
-                      manifest_format="cbor"),
-    # TOML manifest + JSON mandate, full token.
-    positive_via_mint("b64",
-                      mandate_fields={"exp": 4000000000, "tid": TID},
-                      mandate_format="json",
-                      manifest_iss="auth.example", manifest_format="toml"),
-    # Maximal diversity: JSON+SIV manifest, CBOR+GCM-SIV mandate, hex.
-    positive_via_mint("hex",
-                      mandate_fields={"exp": 4000000000, "tid": TID, "sub": "u42"},
-                      mandate_format="cbor", mandate_alg="1",
-                      manifest_iss="auth.example"),
-    # Manifest advisory exp (§11.1) + mandate iss clause (§11.2), JSON.
-    positive("b64",
-             manifest={"alg": "0", "fields": {"iss": "auth.example", "exp": 4100000000}},
-             mandate={"alg": "0", "fields": {"exp": 4000000000, "tid": TID,
-                                             "iss": "auth.example"}}),
-    # Non-ASCII (UTF-8) field values, JSON.
-    positive("b64",
-             manifest={"alg": "0", "fields": {"iss": "issüer.example"}},
-             mandate={"alg": "0", "fields": {"exp": 4000000000, "tid": TID, "sub": "ñoño"}}),
+    # Minimal full token, b64 and hex, both halves AES-SIV.
+    positive("b64", manifest={"alg": "0", "fields": M_ISS}, mandate={"alg": "0", "fields": MAND}),
+    positive("hex", manifest={"alg": "0", "fields": M_ISS}, mandate={"alg": "0", "fields": MAND}),
+    # Mixed algorithms: AES-SIV manifest, AES-GCM-SIV mandate.
+    positive("b64", manifest={"alg": "0", "fields": M_ISS}, mandate={"alg": "1", "fields": MAND}),
+    # Both halves AES-GCM-SIV.
+    positive("b64", manifest={"alg": "1", "fields": M_ISS}, mandate={"alg": "1", "fields": MAND}),
+    # Degenerate shapes: manifest-only and mandate-only.
+    positive("b64", manifest={"alg": "0", "fields": M_ISS}),
+    positive("b64", mandate={"alg": "0", "fields": MAND}),
+    positive("hex", mandate={"alg": "1", "fields": MAND}),
+    # Rich mandate: aud (multi), sub, and application data; manifest app data.
+    positive(
+        "b64",
+        manifest={"alg": "0", "fields": {"iss": "auth.example", "theme": "dark"}},
+        mandate={"alg": "0", "fields": {"exp": 4000000000, "tid": TID,
+                                        "aud": ["api", "billing"], "sub": "u42",
+                                        "role": "admin"}},
+    ),
+    # Manifest advisory exp (§11.1) + mandate iss clause (§11.2).
+    positive(
+        "b64",
+        manifest={"alg": "0", "fields": {"iss": "auth.example", "exp": 4100000000}},
+        mandate={"alg": "0", "fields": {"exp": 4000000000, "tid": TID, "iss": "auth.example"}},
+    ),
+    # Non-ASCII (UTF-8) field values.
+    positive(
+        "b64",
+        manifest={"alg": "0", "fields": {"iss": "issüer.example"}},
+        mandate={"alg": "0", "fields": {"exp": 4000000000, "tid": TID, "sub": "ñoño"}},
+    ),
+    # Maximal diversity: hex, AES-SIV manifest + AES-GCM-SIV mandate with app.
+    positive(
+        "hex",
+        manifest={"alg": "0", "fields": M_ISS},
+        mandate={"alg": "1", "fields": {"exp": 4000000000, "tid": TID, "sub": "u42",
+                                        "role": "admin"}},
+    ),
 ]
 
 # ----------------------------------------------------------------- negatives
@@ -211,67 +252,65 @@ negatives = []
 
 
 def neg(op, token, reason, **policy):
-    row = {"op": op, "token": token, **policy, "reason": reason}
-    negatives.append(row)
+    negatives.append({"op": op, "token": token, **policy, "reason": reason})
 
 
-valid = mandate_token(jhex({"exp": 4000000000, "tid": TID}))
+valid = mandate_token(octets(MAND))
 
 # structural (parse)
 neg("parse", "a.b.c", "more than one separator")
 neg("parse", "abcdefgh", "no separator")
 neg("parse", ".", "both halves absent (bare separator)")
 neg("parse", ".0", "degenerate half: lone algorithm code, empty ciphertext")
-# algorithm / length / encoding (verify)
+# algorithm / length / text-encoding (verify) — unchanged by the CBOR model
 neg("verify", valid[:1] + "2" + valid[2:], "unrecognized algorithm code", key="mandate", now=1000000000)
 neg("verify", ".0AAAA", "half below the 17-byte floor", key="mandate", now=1000000000)
 neg("verify", valid + "=", "non-canonical b64: padding", key="mandate", now=1000000000)
 neg("verify", valid[:-1] + "*", "non-canonical b64: out-of-alphabet character", key="mandate", now=1000000000)
-_hex = mandate_token(jhex({"exp": 4000000000, "tid": TID}), enc="hex")
+_hex = mandate_token(octets(MAND), enc="hex")
 neg("verify", _hex[:2] + _hex[2:].upper(), "non-canonical hex: uppercase", key="mandate", now=1000000000)
+neg("verify", _hex[:-1], "non-canonical hex: odd length", key="mandate", now=1000000000)
 # authentication / key (verify)
 neg("verify", valid, "wrong key (authentication fails)", key="07" * 64, now=1000000000)
 # reserved-clause policy (verify)
-neg("verify", mandate_token(jhex({"exp": 1000000000, "tid": TID})), "expired exp", key="mandate", now=2000000000)
-neg("verify", mandate_token(jhex({"exp": 4000000000, "tid": TID, "aud": ["api"]})),
+neg("verify", mandate_token(octets({"exp": 1000000000, "tid": TID})), "expired exp", key="mandate", now=2000000000)
+neg("verify", mandate_token(octets({"exp": 4000000000, "tid": TID, "aud": ["api"]})),
     "audience mismatch", key="mandate", now=1000000000, audience="other")
-neg("verify", mandate_token(jhex({"exp": 4000000000, "tid": TID, "aud": []})),
+neg("verify", mandate_token(octets({"exp": 4000000000, "tid": TID, "aud": []})),
     "empty aud array", key="mandate", now=1000000000)
-neg("verify", mandate_token(jhex({"exp": 4000000000})), "missing tid", key="mandate", now=1000000000)
-neg("verify", mandate_token(jhex({"exp": 4000000000, "tid": NIL})), "tid is not a UUIDv7",
-    key="mandate", now=1000000000)
-neg("verify", mandate_token(jhex({"exp": 4000000000, "tid": TID_BADVAR})),
-    "tid is version 7 but not the RFC 4122 variant (§12.3)", key="mandate", now=1000000000)
-neg("verify", mandate_token(jhex({"tid": TID})), "missing exp", key="mandate", now=1000000000)
-neg("verify", manifest_token(jhex({"iss": "auth.example"})), "empty mandate", key="mandate", now=1000000000)
+neg("verify", mandate_token(octets({"exp": 4000000000})), "missing tid", key="mandate", now=1000000000)
+neg("verify", mandate_token(octets({"exp": 4000000000, "tid": NIL})),
+    "tid is not a UUIDv7 (version 0)", key="mandate", now=1000000000)
+neg("verify", mandate_token(octets({"exp": 4000000000, "tid": TID_BADVAR})),
+    "tid is version 7 but not the RFC 4122 variant (§11.3)", key="mandate", now=1000000000)
+neg("verify", mandate_token(octets({"tid": TID})), "missing exp", key="mandate", now=1000000000)
+neg("verify", manifest_token(octets(M_ISS)), "empty mandate", key="mandate", now=1000000000)
+# reserved-clause type strictness (verify): wrong CBOR types (spec §9.9)
+neg("verify", map_token({RKEY["exp"]: 4000000000, RKEY["tid"]: _tid(), RKEY["aud"]: "api"}),
+    "aud is a text string, not an array (§11.4)", key="mandate", now=1000000000)
+neg("verify", map_token({RKEY["exp"]: 4000000000, RKEY["tid"]: "not-bytes"}),
+    "tid is a text string, not a 16-byte byte string", key="mandate", now=1000000000)
+neg("verify", map_token({RKEY["exp"]: 4000000000, RKEY["tid"]: _tid()[:8]}),
+    "tid is a byte string but not 16 bytes", key="mandate", now=1000000000)
+neg("verify", map_token({RKEY["exp"]: "4000000000", RKEY["tid"]: _tid()}),
+    "exp is a text string, not an integer", key="mandate", now=1000000000)
+# sign-split namespace (spec §7): an unrecognized negative key fails closed
+neg("verify", map_token({-9: 1, RKEY["exp"]: 4000000000, RKEY["tid"]: _tid()}),
+    "unrecognized negative key fails closed", key="mandate", now=1000000000)
+# non-canonical CBOR (spec §7, §9.9)
+neg("verify", raw_token(dup_key()), "duplicate CBOR map key", key="mandate", now=1000000000)
+neg("verify", raw_token(unsorted_keys()), "CBOR map keys out of canonical order", key="mandate", now=1000000000)
+neg("verify", raw_token(nonshortest_int()), "non-shortest CBOR integer", key="mandate", now=1000000000)
+neg("verify", raw_token(indefinite_map()), "indefinite-length CBOR map", key="mandate", now=1000000000)
+neg("verify", raw_token(trailing_bytes()), "trailing bytes after the CBOR map", key="mandate", now=1000000000)
 # manifest (open-manifest)
-neg("open-manifest", manifest_token(jhex({"role": "x"})), "manifest missing required iss")
-neg("open-manifest", manifest_token(jhex({"iss": "auth.example"}), key="mandate"),
+neg("open-manifest", manifest_token(octets({"role": "x"})), "manifest missing required iss")
+neg("open-manifest", manifest_token(octets(M_ISS), key="mandate"),
     "manifest sealed under the wrong key (authentication fails)")
-_mani = manifest_token(jhex({"iss": "auth.example"}))  # "<text>0."
+_mani = manifest_token(octets(M_ISS))  # "<text>0."
 neg("open-manifest", _mani[:-2] + "=0.", "non-canonical b64: padding (manifest)")
-# reserved-clause type strictness (verify)
-neg("verify", mandate_token(jhex({"exp": 4000000000, "tid": TID, "aud": "api"})),
-    "aud is a bare string, not an array (§11.4)", key="mandate", now=1000000000)
-neg("verify", mandate_token(jhex({"exp": 4000000000, "tid": "not-a-uuid"})),
-    "tid is not a valid UUID", key="mandate", now=1000000000)
-neg("verify", mandate_token(jhex({"exp": "4000000000", "tid": TID})),
-    "exp is a string, not a number", key="mandate", now=1000000000)
-# unrecognized serialization tag (0x79 = 'y')
-_ytag = "79" + json.dumps({"exp": 4000000000, "tid": TID}, separators=(",", ":")).encode().hex()
-neg("verify", mandate_token(_ytag), "unrecognized serialization tag", key="mandate", now=1000000000)
-# non-canonical hex (verify)
-_hexv = mandate_token(jhex({"exp": 4000000000, "tid": TID}), enc="hex")
-neg("verify", _hexv[:-1], "non-canonical hex: odd length", key="mandate", now=1000000000)
-# duplicate reserved name (§9.9): a half MUST be rejected, never resolved
-# last-wins or first-wins. json.dumps can't emit a duplicate, so build raw.
-neg("verify", mandate_token(jhex_raw(f'{{"exp":4000000000,"exp":1,"tid":"{TID}"}}')),
-    "duplicate reserved name exp (§9.9)", key="mandate", now=1000000000)
-neg("verify", mandate_token(jhex_raw(f'{{"exp":4000000000,"tid":"{TID}","tid":"{NIL}"}}')),
-    "duplicate reserved name tid (§9.9)", key="mandate", now=1000000000)
-# excessive clock-skew leeway must not extend exp (§9.9): now is ~63 years past
-# exp, so any verifier whose leeway is bounded by a small maximum rejects.
-neg("verify", mandate_token(jhex({"exp": 1000, "tid": TID})),
+# excessive clock-skew leeway must not extend exp (§9.9)
+neg("verify", mandate_token(octets({"exp": 1000, "tid": TID})),
     "excessive leeway must not extend exp (§9.9)",
     key="mandate", now=2000000000, leeway=9999999999)
 
@@ -279,7 +318,7 @@ neg("verify", mandate_token(jhex({"exp": 1000, "tid": TID})),
 # --------------------------------------------------------------- self-check
 def op_rejects(row):
     op, token = row["op"], row["token"]
-    args = [op, token]
+    args = [op, "-"]
     if op == "verify":
         args += ["-k", row.get("key", "mandate")]
         if "now" in row:
@@ -288,7 +327,7 @@ def op_rejects(row):
             args += ["-a", row["audience"]]
         if "leeway" in row:
             args += ["--leeway", str(row["leeway"])]
-    return run(args, check=False).returncode == 1
+    return run(args, check=False, stdin=token).returncode == 1
 
 
 for row in negatives:
@@ -307,4 +346,4 @@ p1 = write_jsonl("test-vectors.jsonl", positives)
 p2 = write_jsonl("negative-test-vectors.jsonl", negatives)
 print(f"wrote {len(positives)} positive vectors -> {os.path.basename(p1)}")
 print(f"wrote {len(negatives)} negative vectors -> {os.path.basename(p2)}")
-print("all self-checks passed (positives reproduce + verify; negatives reject)")
+print("all self-checks passed (positives reproduce + verify/open; negatives reject)")
