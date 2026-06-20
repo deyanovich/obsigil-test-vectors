@@ -115,8 +115,9 @@ non-zero trailing bits, out-of-alphabet, uppercase/odd hex), a half
 below the 17-byte floor, authentication failure (a wrong key, including
 a manifest sealed under the wrong key), non-canonical CBOR in either
 half (a duplicate map key, keys out of canonical order, a non-shortest
-integer, length, or float, an indefinite length, trailing bytes), an
-unrecognized negative key (obsigil's namespace — rejected fail-closed),
+integer, length, or float, a `NaN`, an indefinite length, trailing
+bytes), an unrecognized negative key (obsigil's namespace — rejected
+fail-closed),
 a reserved field of the wrong CBOR type (a non-integer `exp` — text or
 float; an `aud` that is not a non-empty array of text strings; a
 non-text `iss`/`sub`; a `tid` that is not a 16-byte byte string),

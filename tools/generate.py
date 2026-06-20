@@ -203,6 +203,14 @@ def nonshortest_float():
     return bytes([0xA3]) + _entry(-1, _tid()) + _entry(-2, 4000000000) + cbor("score") + f64
 
 
+def nan_float():
+    # An application float that is NaN — the canonical quiet NaN, float16
+    # 0xf9 0x7e00. NaN has no single canonical bit pattern across encoders, so
+    # obsigil forbids it (spec §7); even this form MUST be rejected.
+    nan = bytes([0xF9, 0x7E, 0x00])
+    return bytes([0xA3]) + _entry(-1, _tid()) + _entry(-2, 4000000000) + cbor("score") + nan
+
+
 def manifest_dup():
     # A manifest map (0xa2) with a duplicate -5 (iss) key.
     return bytes([0xA2]) + _entry(-5, "auth.example") + _entry(-5, "other")
@@ -378,6 +386,7 @@ neg("verify", raw_token(indefinite_map()), "indefinite-length CBOR map", key="ma
 neg("verify", raw_token(trailing_bytes()), "trailing bytes after the CBOR map", key="mandate", now=1000000000)
 neg("verify", raw_token(nonshortest_len()), "non-shortest CBOR length header", key="mandate", now=1000000000)
 neg("verify", raw_token(nonshortest_float()), "non-shortest CBOR float (f64 for an f16-representable value)", key="mandate", now=1000000000)
+neg("verify", raw_token(nan_float()), "NaN application float (forbidden: no canonical bit pattern)", key="mandate", now=1000000000)
 # manifest (open-manifest)
 neg("open-manifest", manifest_token(octets({"role": "x"})), "manifest missing required iss")
 neg("open-manifest", manifest_token(octets(M_ISS), key="mandate"),
