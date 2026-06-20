@@ -96,8 +96,11 @@ Each line is an input a conforming implementation MUST reject:
 - `token` — the input.
 - `key` — for `verify`, the mandate key (role keyword or hex);
   defaults to `mandate`.
-- `now` / `audience` — optional `verify` policy (NumericDate;
-  verifier identifier).
+- `now` / `audience` / `leeway` — optional `verify` policy
+  (NumericDate; verifier identifier; clock-skew leeway in
+  seconds). A conformant verifier bounds `leeway` by a small
+  configured maximum (spec §9.9), so a vector pairing a large
+  `leeway` with a `now` far past `exp` is still rejected.
 - `reason` — informative; the rule being exercised.
 
 Rejection is **uniform** (spec §9.5): an implementation MUST NOT signal
@@ -108,9 +111,12 @@ tag, non-canonical encoding (padding, impossible length, non-zero
 trailing bits, uppercase/odd hex), a half below the 17-byte floor,
 authentication failure (a wrong key, including a manifest sealed under
 the wrong key), a reserved clause of the wrong JSON type (bare-string
-`aud`, non-UUID `tid`, non-numeric `exp`), missing or non-UUIDv7
-`tid`, missing `exp`, expired `exp`, `aud` mismatch or empty `aud`, an
-empty mandate, and a manifest missing its required `iss`.
+`aud`, non-UUID `tid`, non-numeric `exp`), missing or non-UUIDv7 `tid`
+(including a version-7 value carrying a non-RFC-4122 variant), a
+duplicate reserved name, missing `exp`, expired `exp` (including a
+`now` past `exp` that an over-large but bounded `leeway` cannot
+extend), `aud` mismatch or empty `aud`, an empty mandate, and a
+manifest missing its required `iss`.
 
 ## Generation
 

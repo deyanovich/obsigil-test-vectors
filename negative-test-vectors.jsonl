@@ -13,6 +13,7 @@
 {"op": "verify", "token": ".0dl-CKUCeWzzNIRuX9cK9J7aGJu_n0tia9JYhCzV5yZo5LBAstzk6YYv7fu5468HjYbvC566EkwIrO7Qgwi2WgxhEO6gnNxaYCdw9dt7BfT7MJ4wwijewGYs", "key": "mandate", "now": 1000000000, "reason": "empty aud array"}
 {"op": "verify", "token": ".0af3bL9Rrd2R2u0fUFc9mN1nVzUTi2WtUWdz_mCXef-LAUGA", "key": "mandate", "now": 1000000000, "reason": "missing tid"}
 {"op": "verify", "token": ".0kyo2lcHgkcTw6cylQ3cZwd5TbwpBewRsN37oDmF7pVRSHzyEzgbj6EkAQ9XXo6V3-Y_6bISbva0U8xW4cEPbsGDpaUxd-bBbLSF-5G1loIU", "key": "mandate", "now": 1000000000, "reason": "tid is not a UUIDv7"}
+{"op": "verify", "token": ".0xyIJO__ZRaeAsDMaLl4rVne9Vb_kZhHA8S-iu3zIVEcjiG66IvMVsBvuiufysk-BqMd6nj-Cd_RXDN6NVNFEKkf8kjPhlBFTejFYy7AtJDg", "key": "mandate", "now": 1000000000, "reason": "tid is version 7 but not the RFC 4122 variant (§12.3)"}
 {"op": "verify", "token": ".0hgQsUagkAsI5N4fTY6GGwYgXymqcTfg7oPTN-3gviMpWbPjkH61laMmjLRVtDLrlheEZMgo5F5bRDhJtyyzt", "key": "mandate", "now": 1000000000, "reason": "missing exp"}
 {"op": "verify", "token": "XTq7rZeR3huTEjaPE5uqhSe5QQXYWPLSPAezRpveaYJ_NztUmTak0.", "key": "mandate", "now": 1000000000, "reason": "empty mandate"}
 {"op": "open-manifest", "token": "c1I5lYm4t84mv2LXKOSKFkwW1SQmwGv0nUSWsc80.", "reason": "manifest missing required iss"}
@@ -23,3 +24,6 @@
 {"op": "verify", "token": ".0XYlY4qjpF1Sa-70blonU7FwsoazUug3sVNBsYgUoU4lc15HIh2heClIRbPsQGE2SJ-yn_PvvJdysgwYuaxqcoSuX6v8wymeBcdiMpWYoxL0NUw", "key": "mandate", "now": 1000000000, "reason": "exp is a string, not a number"}
 {"op": "verify", "token": ".0w9yyLqpzPHS4nCgshlfxfHLMQYPyuRpZb389XWqb6N1NTqYrfXl517r4RySApLoknEyfmpzYHULSiMA8gwuoU1ygZpZVKAsftmq85h_I4uA", "key": "mandate", "now": 1000000000, "reason": "unrecognized serialization tag"}
 {"op": "verify", "token": "~06ab0d894124c235105c7ace45190c9c393d9be993e4b2072cd54b6a773dcb276790de0d4e3290f84135dfd10f9880de44194a314d1d00d9d1efbf462437469c07bce4e1ad19d7cc4bdd71a13181f005", "key": "mandate", "now": 1000000000, "reason": "non-canonical hex: odd length"}
+{"op": "verify", "token": ".0xvpaVexbcD36Q0AYIo_3lpOSFwUzFH95voUFQhKBgooAGx3fJsGlTMqH7JB5ZIFO6rGp6dHvI_qIYzFEGLz_Ghcb4_hhtbKypa2wBz8phRt4K_q32U8TXw", "key": "mandate", "now": 1000000000, "reason": "duplicate reserved name exp (§9.9)"}
+{"op": "verify", "token": ".0-UveN5YpmrKY77CiwMSBx-OePsQRJ81ft9TJ-5m34I9dcuMg3A6amHIEyGuSGFn1XY4C_epq5HFFDOljf6Ny_tfwL0JFJuYFh1oY6QY6pFKUrMB0yj9Enoq7-E3drWMo3L64d3yQAUOwcE4DCVduUHTgBBvmf4l0hEXhpUA", "key": "mandate", "now": 1000000000, "reason": "duplicate reserved name tid (§9.9)"}
+{"op": "verify", "token": ".0uvCqiO71yrdzC10oOzkYSvHCWEU3abfXonI0pvHHGiNqwlEjP1K3nnMV1UAS_BzknUEDuZ-9_87zmDD2weF5QRCTjsjh0Sg4M7A", "key": "mandate", "now": 2000000000, "leeway": 9999999999, "reason": "excessive leeway must not extend exp (§9.9)"}

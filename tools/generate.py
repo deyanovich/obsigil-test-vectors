@@ -20,6 +20,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TAG = {"json": "6a", "toml": "74", "cbor": "63"}
 TID = "019ed29a-378d-72f0-b462-4929cd2bfcad"  # a fixed UUIDv7
 NIL = "00000000-0000-0000-0000-000000000000"  # version 0 — not a v7
+# Version field 7 but variant nibble 0 (NCS, 0b00) — not a well-formed UUIDv7
+# (spec §12.3 requires version 7 AND the RFC 4122 variant 0b10).
+TID_BADVAR = "019ed29a-378d-72f0-0462-4929cd2bfcad"
 
 
 def run(args, check=True):
@@ -33,6 +36,12 @@ def jhex(fields, fmt="json"):
     """tag || compact-JSON (serde_json layout), as hex."""
     s = json.dumps(fields, separators=(",", ":"), ensure_ascii=False)
     return TAG[fmt] + s.encode("utf-8").hex()
+
+
+def jhex_raw(raw, fmt="json"):
+    """tag || raw serialized bytes, as hex — for inputs json.dumps cannot
+    express, such as an object with a duplicate key."""
+    return TAG[fmt] + raw.encode("utf-8").hex()
 
 
 def seal(octets_hex, key, alg, enc):
@@ -231,6 +240,8 @@ neg("verify", mandate_token(jhex({"exp": 4000000000, "tid": TID, "aud": []})),
 neg("verify", mandate_token(jhex({"exp": 4000000000})), "missing tid", key="mandate", now=1000000000)
 neg("verify", mandate_token(jhex({"exp": 4000000000, "tid": NIL})), "tid is not a UUIDv7",
     key="mandate", now=1000000000)
+neg("verify", mandate_token(jhex({"exp": 4000000000, "tid": TID_BADVAR})),
+    "tid is version 7 but not the RFC 4122 variant (§12.3)", key="mandate", now=1000000000)
 neg("verify", mandate_token(jhex({"tid": TID})), "missing exp", key="mandate", now=1000000000)
 neg("verify", manifest_token(jhex({"iss": "auth.example"})), "empty mandate", key="mandate", now=1000000000)
 # manifest (open-manifest)
@@ -252,6 +263,17 @@ neg("verify", mandate_token(_ytag), "unrecognized serialization tag", key="manda
 # non-canonical hex (verify)
 _hexv = mandate_token(jhex({"exp": 4000000000, "tid": TID}), enc="hex")
 neg("verify", _hexv[:-1], "non-canonical hex: odd length", key="mandate", now=1000000000)
+# duplicate reserved name (§9.9): a half MUST be rejected, never resolved
+# last-wins or first-wins. json.dumps can't emit a duplicate, so build raw.
+neg("verify", mandate_token(jhex_raw(f'{{"exp":4000000000,"exp":1,"tid":"{TID}"}}')),
+    "duplicate reserved name exp (§9.9)", key="mandate", now=1000000000)
+neg("verify", mandate_token(jhex_raw(f'{{"exp":4000000000,"tid":"{TID}","tid":"{NIL}"}}')),
+    "duplicate reserved name tid (§9.9)", key="mandate", now=1000000000)
+# excessive clock-skew leeway must not extend exp (§9.9): now is ~63 years past
+# exp, so any verifier whose leeway is bounded by a small maximum rejects.
+neg("verify", mandate_token(jhex({"exp": 1000, "tid": TID})),
+    "excessive leeway must not extend exp (§9.9)",
+    key="mandate", now=2000000000, leeway=9999999999)
 
 
 # --------------------------------------------------------------- self-check
@@ -264,6 +286,8 @@ def op_rejects(row):
             args += ["--now", str(row["now"])]
         if "audience" in row:
             args += ["-a", row["audience"]]
+        if "leeway" in row:
+            args += ["--leeway", str(row["leeway"])]
     return run(args, check=False).returncode == 1
 
 
