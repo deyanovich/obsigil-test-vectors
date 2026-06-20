@@ -16,6 +16,7 @@ Usage:  OBSIGIL_BIN=/path/to/obsigil python3 tools/generate.py
 
 import json
 import os
+import struct
 import subprocess
 import uuid
 
@@ -27,6 +28,10 @@ NIL = "00000000-0000-0000-0000-000000000000"  # version 0 — not a v7
 # Version field 7 but variant nibble 0 (NCS, 0b00) — not a well-formed UUIDv7
 # (spec §11.3 requires version 7 AND the RFC 4122 variant 0b10).
 TID_BADVAR = "019ed29a-378d-72f0-0462-4929cd2bfcad"
+V4 = "00000000-0000-4000-8000-000000000000"  # version 4 (the common UUID)
+V8 = "00000000-0000-8000-8000-000000000000"  # version 8
+# Version 7 but the Microsoft variant (top bits 0b110), not RFC 4122 (0b10).
+V7_MSVAR = "019ed29a-378d-72f0-c462-4929cd2bfcad"
 
 # Reserved field -> negative integer key (spec §11, §7).
 RKEY = {"tid": -1, "exp": -2, "aud": -3, "sub": -4, "iss": -5}
@@ -53,6 +58,8 @@ def cbor(v):
         return bytes([0xF5 if v else 0xF4])
     if isinstance(v, int):
         return _head(0, v) if v >= 0 else _head(1, -1 - v)
+    if isinstance(v, float):
+        return bytes([0xFB]) + struct.pack(">d", v)  # 64-bit double (negative tests)
     if isinstance(v, bytes):
         return _head(2, len(v)) + v
     if isinstance(v, str):
@@ -174,6 +181,31 @@ def trailing_bytes():
     return cbor(reserved_map(MAND)) + bytes([0x00])
 
 
+def nonshortest_len():
+    # tid (16 bytes) with a non-shortest length head (0x58 0x10, a 1-byte
+    # length) instead of the direct 0x50 — non-canonical (spec §7).
+    return bytes([0xA2]) + cbor(-1) + bytes([0x58, 0x10]) + _tid() + _entry(-2, 4000000000)
+
+
+def manifest_dup():
+    # A manifest map (0xa2) with a duplicate -5 (iss) key.
+    return bytes([0xA2]) + _entry(-5, "auth.example") + _entry(-5, "other")
+
+
+_B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+
+
+def set_b64_trailing(token):
+    """Set an unused trailing bit of the final b64 symbol of a `.0<half>`
+    token while preserving its significant bits, so a lenient decoder would
+    decode the identical ciphertext (and wrongly accept); a strict decoder
+    rejects the non-zero trailing bits (spec §3)."""
+    half = token[2:]
+    unused = {2: 4, 3: 2}[len(half) % 4]  # symbols mod 4 -> unused low bits
+    idx = _B64.index(token[-1])
+    return token[:-1] + _B64[(idx & ~((1 << unused) - 1)) | 1]
+
+
 # ----------------------------------------------------------- positive builder
 def positive(enc, manifest=None, mandate=None):
     """A positive vector. Octets are canonical CBOR; the assembled token is
@@ -262,6 +294,8 @@ neg("parse", "a.b.c", "more than one separator")
 neg("parse", "abcdefgh", "no separator")
 neg("parse", ".", "both halves absent (bare separator)")
 neg("parse", ".0", "degenerate half: lone algorithm code, empty ciphertext")
+neg("parse", "0.", "degenerate half: manifest-side lone algorithm code, empty ciphertext")
+neg("parse", "abc0,0def", "single delimiter outside {., ~}: no valid separator")
 # algorithm / length / text-encoding (verify) — unchanged by the CBOR model
 neg("verify", valid[:1] + "2" + valid[2:], "unrecognized algorithm code", key="mandate", now=1000000000)
 neg("verify", ".0AAAA", "half below the 17-byte floor", key="mandate", now=1000000000)
@@ -270,6 +304,9 @@ neg("verify", valid[:-1] + "*", "non-canonical b64: out-of-alphabet character", 
 _hex = mandate_token(octets(MAND), enc="hex")
 neg("verify", _hex[:2] + _hex[2:].upper(), "non-canonical hex: uppercase", key="mandate", now=1000000000)
 neg("verify", _hex[:-1], "non-canonical hex: odd length", key="mandate", now=1000000000)
+neg("verify", _hex[:-1] + "g", "non-canonical hex: out-of-alphabet letter (g)", key="mandate", now=1000000000)
+neg("verify", ".0" + "A" * 17, "non-canonical b64: half length is 1 modulo 4", key="mandate", now=1000000000)
+neg("verify", set_b64_trailing(valid), "non-canonical b64: non-zero unused trailing bits", key="mandate", now=1000000000)
 # authentication / key (verify)
 neg("verify", valid, "wrong key (authentication fails)", key="07" * 64, now=1000000000)
 # reserved-clause policy (verify)
@@ -283,6 +320,12 @@ neg("verify", mandate_token(octets({"exp": 4000000000, "tid": NIL})),
     "tid is not a UUIDv7 (version 0)", key="mandate", now=1000000000)
 neg("verify", mandate_token(octets({"exp": 4000000000, "tid": TID_BADVAR})),
     "tid is version 7 but not the RFC 4122 variant (§11.3)", key="mandate", now=1000000000)
+neg("verify", mandate_token(octets({"exp": 4000000000, "tid": V4})),
+    "tid is a UUIDv4 (version 4), not a UUIDv7", key="mandate", now=1000000000)
+neg("verify", mandate_token(octets({"exp": 4000000000, "tid": V8})),
+    "tid is a UUIDv8 (version 8), not a UUIDv7", key="mandate", now=1000000000)
+neg("verify", mandate_token(octets({"exp": 4000000000, "tid": V7_MSVAR})),
+    "tid is version 7 but the Microsoft variant (0b110), not RFC 4122", key="mandate", now=1000000000)
 neg("verify", mandate_token(octets({"tid": TID})), "missing exp", key="mandate", now=1000000000)
 neg("verify", manifest_token(octets(M_ISS)), "empty mandate", key="mandate", now=1000000000)
 # reserved-clause type strictness (verify): wrong CBOR types (spec §9.9)
@@ -291,9 +334,21 @@ neg("verify", map_token({RKEY["exp"]: 4000000000, RKEY["tid"]: _tid(), RKEY["aud
 neg("verify", map_token({RKEY["exp"]: 4000000000, RKEY["tid"]: "not-bytes"}),
     "tid is a text string, not a 16-byte byte string", key="mandate", now=1000000000)
 neg("verify", map_token({RKEY["exp"]: 4000000000, RKEY["tid"]: _tid()[:8]}),
-    "tid is a byte string but not 16 bytes", key="mandate", now=1000000000)
+    "tid is a byte string shorter than 16 bytes (8)", key="mandate", now=1000000000)
+neg("verify", map_token({RKEY["exp"]: 4000000000, RKEY["tid"]: b"\x00" * 32}),
+    "tid is a byte string longer than 16 bytes (32)", key="mandate", now=1000000000)
+neg("verify", map_token({RKEY["exp"]: 4000000000, RKEY["tid"]: b""}),
+    "tid is an empty byte string", key="mandate", now=1000000000)
 neg("verify", map_token({RKEY["exp"]: "4000000000", RKEY["tid"]: _tid()}),
     "exp is a text string, not an integer", key="mandate", now=1000000000)
+neg("verify", map_token({RKEY["exp"]: 4000000000.0, RKEY["tid"]: _tid()}),
+    "exp is a CBOR float, not a NumericDate integer", key="mandate", now=1000000000)
+neg("verify", map_token({RKEY["exp"]: 4000000000, RKEY["tid"]: _tid(), RKEY["iss"]: 123}),
+    "iss is an integer, not a text string", key="mandate", now=1000000000)
+neg("verify", map_token({RKEY["exp"]: 4000000000, RKEY["tid"]: _tid(), RKEY["sub"]: 123}),
+    "sub is an integer, not a text string", key="mandate", now=1000000000)
+neg("verify", map_token({RKEY["exp"]: 4000000000, RKEY["tid"]: _tid(), RKEY["aud"]: [1]}),
+    "aud is an array containing a non-text element", key="mandate", now=1000000000)
 # sign-split namespace (spec §7): an unrecognized negative key fails closed
 neg("verify", map_token({-9: 1, RKEY["exp"]: 4000000000, RKEY["tid"]: _tid()}),
     "unrecognized negative key fails closed", key="mandate", now=1000000000)
@@ -303,12 +358,14 @@ neg("verify", raw_token(unsorted_keys()), "CBOR map keys out of canonical order"
 neg("verify", raw_token(nonshortest_int()), "non-shortest CBOR integer", key="mandate", now=1000000000)
 neg("verify", raw_token(indefinite_map()), "indefinite-length CBOR map", key="mandate", now=1000000000)
 neg("verify", raw_token(trailing_bytes()), "trailing bytes after the CBOR map", key="mandate", now=1000000000)
+neg("verify", raw_token(nonshortest_len()), "non-shortest CBOR length header", key="mandate", now=1000000000)
 # manifest (open-manifest)
 neg("open-manifest", manifest_token(octets({"role": "x"})), "manifest missing required iss")
 neg("open-manifest", manifest_token(octets(M_ISS), key="mandate"),
     "manifest sealed under the wrong key (authentication fails)")
 _mani = manifest_token(octets(M_ISS))  # "<text>0."
 neg("open-manifest", _mani[:-2] + "=0.", "non-canonical b64: padding (manifest)")
+neg("open-manifest", manifest_token(manifest_dup().hex()), "non-canonical CBOR in manifest (duplicate map key)")
 # excessive clock-skew leeway must not extend exp (§9.9)
 neg("verify", mandate_token(octets({"exp": 1000, "tid": TID})),
     "excessive leeway must not extend exp (§9.9)",

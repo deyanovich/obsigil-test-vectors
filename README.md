@@ -108,17 +108,20 @@ Each line is an input a conforming implementation MUST reject:
 
 Rejection is **uniform** (spec §9.5): an implementation MUST NOT signal
 *why* to the bearer. Through the obsigil CLI a rejection is exit code 1.
-Categories: malformed structure (separator count, degenerate half),
-unrecognized/unsupported algorithm code, non-canonical text encoding
-(padding, impossible length, non-zero trailing bits, uppercase/odd
-hex), a half below the 17-byte floor, authentication failure (a wrong
-key, including a manifest sealed under the wrong key), non-canonical
-CBOR (a duplicate map key, keys out of canonical order, a non-shortest
-integer, an indefinite length, trailing bytes), an unrecognized
-negative key (obsigil's namespace — rejected fail-closed), a reserved
-field of the wrong CBOR type (text `aud` instead of an array, a `tid`
-that is not a 16-byte byte string, text `exp`), missing or non-UUIDv7
-`tid` (including a version-7 value carrying a non-RFC-4122 variant),
+Categories: malformed structure (separator count, an unrecognized
+separator, a degenerate half on either side), unrecognized/unsupported
+algorithm code, non-canonical text encoding (padding, length 1 mod 4,
+non-zero trailing bits, out-of-alphabet, uppercase/odd hex), a half
+below the 17-byte floor, authentication failure (a wrong key, including
+a manifest sealed under the wrong key), non-canonical CBOR in either
+half (a duplicate map key, keys out of canonical order, a non-shortest
+integer or length, an indefinite length, trailing bytes), an
+unrecognized negative key (obsigil's namespace — rejected fail-closed),
+a reserved field of the wrong CBOR type (a non-integer `exp` — text or
+float; an `aud` that is not a non-empty array of text strings; a
+non-text `iss`/`sub`; a `tid` that is not a 16-byte byte string),
+missing or non-UUIDv7 `tid` (wrong version — including the common
+UUIDv4 and UUIDv8 — a non-RFC-4122 variant, or a non-16-byte length),
 missing `exp`, expired `exp` (including a `now` past `exp` that an
 over-large but bounded `leeway` cannot extend), `aud` mismatch or empty
 `aud`, an empty mandate, and a manifest missing its required `iss`.

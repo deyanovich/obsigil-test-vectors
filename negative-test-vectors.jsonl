@@ -2,12 +2,17 @@
 {"op": "parse", "token": "abcdefgh", "reason": "no separator"}
 {"op": "parse", "token": ".", "reason": "both halves absent (bare separator)"}
 {"op": "parse", "token": ".0", "reason": "degenerate half: lone algorithm code, empty ciphertext"}
+{"op": "parse", "token": "0.", "reason": "degenerate half: manifest-side lone algorithm code, empty ciphertext"}
+{"op": "parse", "token": "abc0,0def", "reason": "single delimiter outside {., ~}: no valid separator"}
 {"op": "verify", "token": ".2XEGe0T5Vih7NhiJsXhrEuLHX7SqEoSOY4PSx91evs1qMZav-laAa5Os", "key": "mandate", "now": 1000000000, "reason": "unrecognized algorithm code"}
 {"op": "verify", "token": ".0AAAA", "key": "mandate", "now": 1000000000, "reason": "half below the 17-byte floor"}
 {"op": "verify", "token": ".0XEGe0T5Vih7NhiJsXhrEuLHX7SqEoSOY4PSx91evs1qMZav-laAa5Os=", "key": "mandate", "now": 1000000000, "reason": "non-canonical b64: padding"}
 {"op": "verify", "token": ".0XEGe0T5Vih7NhiJsXhrEuLHX7SqEoSOY4PSx91evs1qMZav-laAa5O*", "key": "mandate", "now": 1000000000, "reason": "non-canonical b64: out-of-alphabet character"}
 {"op": "verify", "token": "~05C419ED13E558A1ECD86226C5E1AC4B8B1D7ED2A84A12398E0F4B1F757AFB35A8C65ABFE95A01AE4EB", "key": "mandate", "now": 1000000000, "reason": "non-canonical hex: uppercase"}
 {"op": "verify", "token": "~05c419ed13e558a1ecd86226c5e1ac4b8b1d7ed2a84a12398e0f4b1f757afb35a8c65abfe95a01ae4e", "key": "mandate", "now": 1000000000, "reason": "non-canonical hex: odd length"}
+{"op": "verify", "token": "~05c419ed13e558a1ecd86226c5e1ac4b8b1d7ed2a84a12398e0f4b1f757afb35a8c65abfe95a01ae4eg", "key": "mandate", "now": 1000000000, "reason": "non-canonical hex: out-of-alphabet letter (g)"}
+{"op": "verify", "token": ".0AAAAAAAAAAAAAAAAA", "key": "mandate", "now": 1000000000, "reason": "non-canonical b64: half length is 1 modulo 4"}
+{"op": "verify", "token": ".0XEGe0T5Vih7NhiJsXhrEuLHX7SqEoSOY4PSx91evs1qMZav-laAa5Ot", "key": "mandate", "now": 1000000000, "reason": "non-canonical b64: non-zero unused trailing bits"}
 {"op": "verify", "token": ".0XEGe0T5Vih7NhiJsXhrEuLHX7SqEoSOY4PSx91evs1qMZav-laAa5Os", "key": "07070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707", "now": 1000000000, "reason": "wrong key (authentication fails)"}
 {"op": "verify", "token": ".0yA3J4qgDgMHcVxnNGc5lYDelFWCwWy3rPioH0vdcGhKZ633iLg_B9vw", "key": "mandate", "now": 2000000000, "reason": "expired exp"}
 {"op": "verify", "token": ".0VQNd23tCmzc8zpcEVRjmyXqzuemo_JDgdpeP7ybW9j3G_iyJKPCc0ya8r-aByVo", "key": "mandate", "now": 1000000000, "audience": "other", "reason": "audience mismatch"}
@@ -15,19 +20,30 @@
 {"op": "verify", "token": ".0iyh7I6MKKmFJ3K7vr8Y16iH3uUEoRRk", "key": "mandate", "now": 1000000000, "reason": "missing tid"}
 {"op": "verify", "token": ".0CQyylZaoeHGc7CsNagYFz9lOVZPem9JXEYWhOJWRNjOvydyo7nXnv7g", "key": "mandate", "now": 1000000000, "reason": "tid is not a UUIDv7 (version 0)"}
 {"op": "verify", "token": ".0e5Ue1Vkxw0_ZNq-4GV_y3XaJVsBKKbYSeUv7z-6p1Z4KFLdjhMuCwEw", "key": "mandate", "now": 1000000000, "reason": "tid is version 7 but not the RFC 4122 variant (§11.3)"}
+{"op": "verify", "token": ".08VI7JiKteOJ0Oyb1AYWmU1K78FjNMmoKx1mL3El6s6QXuqsqZYmv4TU", "key": "mandate", "now": 1000000000, "reason": "tid is a UUIDv4 (version 4), not a UUIDv7"}
+{"op": "verify", "token": ".0YqTnLWdl7LlZmD8Y6_ytabLYnRGen0yu6-ucdnXO7QrDuDJeVNLRhpw", "key": "mandate", "now": 1000000000, "reason": "tid is a UUIDv8 (version 8), not a UUIDv7"}
+{"op": "verify", "token": ".04F2MBhNzl5udYbVu5meBadEiAs94kIliAjwC2d9cAQ_1dEoPlZUG1bc", "key": "mandate", "now": 1000000000, "reason": "tid is version 7 but the Microsoft variant (0b110), not RFC 4122"}
 {"op": "verify", "token": ".0sxZ-uoJUoeNDCAssmZhHtVrl0FAJpCI6MPzb1Be7TyybUW0", "key": "mandate", "now": 1000000000, "reason": "missing exp"}
 {"op": "verify", "token": "Ifjt1gPO2S2soNJQZjtP8Q8zDe5zvPxl2D2OuejeOQ0.", "key": "mandate", "now": 1000000000, "reason": "empty mandate"}
 {"op": "verify", "token": ".0U12pxd9KKJ4wpt8d68XTIeH5ol8NGEDQbzgGU60GkbewQ4RDXRrHbJ9Ah-uT2A", "key": "mandate", "now": 1000000000, "reason": "aud is a text string, not an array (§11.4)"}
 {"op": "verify", "token": ".0_FQ8vdXlf36kACAKrictmkBudA__goAbemRv5_fCnz4N6A", "key": "mandate", "now": 1000000000, "reason": "tid is a text string, not a 16-byte byte string"}
-{"op": "verify", "token": ".0m-61kcqoKEE4J1k6a3ugwGtAkURiwFwSnEhpjykVAw-n", "key": "mandate", "now": 1000000000, "reason": "tid is a byte string but not 16 bytes"}
+{"op": "verify", "token": ".0m-61kcqoKEE4J1k6a3ugwGtAkURiwFwSnEhpjykVAw-n", "key": "mandate", "now": 1000000000, "reason": "tid is a byte string shorter than 16 bytes (8)"}
+{"op": "verify", "token": ".0Y_xuB4UTnwPqAsIvHtOE3-1M_RYs1cR2mOLdNZ_FxIgscBkXw_eQRdMpaxdbLe5a_3mi3kCO-ruebA", "key": "mandate", "now": 1000000000, "reason": "tid is a byte string longer than 16 bytes (32)"}
+{"op": "verify", "token": ".0VpXpsTJ-nE8QWz7_GsV1aP8_Ng_-40NeVg", "key": "mandate", "now": 1000000000, "reason": "tid is an empty byte string"}
 {"op": "verify", "token": ".0kcH5_oSww7ihUYyu9pXri_PW5Hzjj_w-MJ44eoc5N8V9Yefr456Oz0UMxLeRBQo", "key": "mandate", "now": 1000000000, "reason": "exp is a text string, not an integer"}
+{"op": "verify", "token": ".04XVnz_uDaxTmkI67pl3Utc22KKqW-vtVckGYqHq-j-U5C52ef9kRxN_cWxG4", "key": "mandate", "now": 1000000000, "reason": "exp is a CBOR float, not a NumericDate integer"}
+{"op": "verify", "token": ".0z06wcVMV9686duHv_c0fbycy0lvGVtM73UIx9QdiwtOTuetLS7yDZpIzLwE", "key": "mandate", "now": 1000000000, "reason": "iss is an integer, not a text string"}
+{"op": "verify", "token": ".00_BCciKT0YENYMIbRj0VJXf-cPuDerB0o9E9ubLHzT2czrzqbOb_ahnOS3c", "key": "mandate", "now": 1000000000, "reason": "sub is an integer, not a text string"}
+{"op": "verify", "token": ".0fc9RLPTu6QYyGxIZsl0cFa2NmWiw7CLT0FEH8FzCgJ1aPWJiJurnQIpV0Nk", "key": "mandate", "now": 1000000000, "reason": "aud is an array containing a non-text element"}
 {"op": "verify", "token": ".08-YqrUFXzP4VCPhEYM4J6G14RxzfefD55a8p_Q3itG4J1LtDIPQFUCmxCg", "key": "mandate", "now": 1000000000, "reason": "unrecognized negative key fails closed"}
 {"op": "verify", "token": ".0nZb27hubmGRCFhvLM4klqCW7CyGM00CcK4zpKTbRc_RPUH9aUEtb4RZ5yg", "key": "mandate", "now": 1000000000, "reason": "duplicate CBOR map key"}
 {"op": "verify", "token": ".0b4n06n04YtXu-0CnNQbnyhULfYCfxMMommud4jokIMJnAKJJyiOFZuo", "key": "mandate", "now": 1000000000, "reason": "CBOR map keys out of canonical order"}
 {"op": "verify", "token": ".0I9k9jkWbtJ34g3Tu0cIqspjejyw5BBJaYx-D72isE0f0470C6cRgTLVvoI9L", "key": "mandate", "now": 1000000000, "reason": "non-shortest CBOR integer"}
 {"op": "verify", "token": ".0aKOLS6_RlTCRUY0T6wk7P4wIKR2leNqcSfxL-xISKWd1Z-sIYkyKrMrR", "key": "mandate", "now": 1000000000, "reason": "indefinite-length CBOR map"}
 {"op": "verify", "token": ".0ND8KGfmCPLWf79y5k-lYOEkOtygrY3tx3Dz7R7KSSwgpfQvdpKgro3HQ", "key": "mandate", "now": 1000000000, "reason": "trailing bytes after the CBOR map"}
+{"op": "verify", "token": ".0iRnUVOhEPMIc82fj5qvFqG8LdeuskQjeANMKaHYIUG5jJV3hbsHiXsOb", "key": "mandate", "now": 1000000000, "reason": "non-shortest CBOR length header"}
 {"op": "open-manifest", "token": "WoCcor2Kn6itheafyPbd-KczYbsmUhak0.", "reason": "manifest missing required iss"}
 {"op": "open-manifest", "token": "cv55m-dTtoiW2ee7GiPgv7zl-7czCdLjdMy8mLt2XA0.", "reason": "manifest sealed under the wrong key (authentication fails)"}
 {"op": "open-manifest", "token": "Ifjt1gPO2S2soNJQZjtP8Q8zDe5zvPxl2D2OuejeOQ=0.", "reason": "non-canonical b64: padding (manifest)"}
+{"op": "open-manifest", "token": "8Tgly3CE8h9gv_FCP6Lw_Q_Asc9oukSra7oXEhioLD6jUMVUT1Q0.", "reason": "non-canonical CBOR in manifest (duplicate map key)"}
 {"op": "verify", "token": ".0_zZzmoyJ7TKxjoARhgm4aiakN7wUwReYijx0uDvyeK6ndw6bzjj3", "key": "mandate", "now": 2000000000, "leeway": 9999999999, "reason": "excessive leeway must not extend exp (§9.9)"}
