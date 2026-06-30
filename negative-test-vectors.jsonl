@@ -4,6 +4,7 @@
 {"op": "parse", "token": ".0", "reason": "degenerate half: lone algorithm code, empty ciphertext"}
 {"op": "parse", "token": "0.", "reason": "degenerate half: manifest-side lone algorithm code, empty ciphertext"}
 {"op": "parse", "token": "abc0,0def", "reason": "single delimiter outside {., ~}: no valid separator"}
+{"op": "parse", "token": ".AXEGe0T5Vih7NhiJsXhrEuLHX7SqEoSOY4PSx91evs1qMZav-laAa5Os", "reason": "out-of-range algorithm-code character"}
 {"op": "verify", "token": ".2XEGe0T5Vih7NhiJsXhrEuLHX7SqEoSOY4PSx91evs1qMZav-laAa5Os", "key": "mandate", "now": 1000000000, "reason": "unrecognized algorithm code"}
 {"op": "verify", "token": ".0AAAA", "key": "mandate", "now": 1000000000, "reason": "half below the 17-byte floor"}
 {"op": "verify", "token": ".0XEGe0T5Vih7NhiJsXhrEuLHX7SqEoSOY4PSx91evs1qMZav-laAa5Os=", "key": "mandate", "now": 1000000000, "reason": "non-canonical b64: padding"}
@@ -44,8 +45,12 @@
 {"op": "verify", "token": ".0iRnUVOhEPMIc82fj5qvFqG8LdeuskQjeANMKaHYIUG5jJV3hbsHiXsOb", "key": "mandate", "now": 1000000000, "reason": "non-shortest CBOR length header"}
 {"op": "verify", "token": ".0G8e-NeRyz9dbnlAOblNg0Tx45mo4BQimHLhYQauGL9EZZQiFXu9Y43Zp5UZkk6kMV9UwOCe7-Vo", "key": "mandate", "now": 1000000000, "reason": "non-shortest CBOR float (f64 for an f16-representable value)"}
 {"op": "verify", "token": ".09HLm3Qv48t_s6QR4P2qLq3TtTa9bPlAqYyXX15efm1Mcih5w71Ng1-63Pw7jmIsNrKc", "key": "mandate", "now": 1000000000, "reason": "NaN application float (forbidden: no canonical bit pattern)"}
+{"op": "verify", "token": ".03fbhHYM9XWfgmC8HC-jRQtTllQ", "key": "mandate", "now": 1000000000, "reason": "disallowed CBOR map-key type (byte string)"}
+{"op": "verify", "token": ".0BTgk8EWUkAjQ0kH_8M2VcCIwwC6AYozqS8CZ4Qs2UXQ3C_nH9pkSj91VO15C7g", "key": "mandate", "now": 1000000000, "reason": "disallowed CBOR map-key type (nested byte string)"}
+{"op": "verify", "token": ".0puo3Q7Ne4MJf1yf9oVs71CXbVNs", "key": "mandate", "now": 1000000000, "reason": "text string is not valid UTF-8"}
 {"op": "open-manifest", "token": "WoCcor2Kn6itheafyPbd-KczYbsmUhak0.", "reason": "manifest missing required iss"}
 {"op": "open-manifest", "token": "cv55m-dTtoiW2ee7GiPgv7zl-7czCdLjdMy8mLt2XA0.", "reason": "manifest sealed under the wrong key (authentication fails)"}
 {"op": "open-manifest", "token": "Ifjt1gPO2S2soNJQZjtP8Q8zDe5zvPxl2D2OuejeOQ=0.", "reason": "non-canonical b64: padding (manifest)"}
 {"op": "open-manifest", "token": "8Tgly3CE8h9gv_FCP6Lw_Q_Asc9oukSra7oXEhioLD6jUMVUT1Q0.", "reason": "non-canonical CBOR in manifest (duplicate map key)"}
+{"op": "open-manifest", "token": "W2ociNkF7ksCMPrfLOW11xeIz4yO1g6CDJNzQQJ8KHQUhRvfH3M0.", "reason": "reserved key in wrong half (tid in manifest)"}
 {"op": "verify", "token": ".0_zZzmoyJ7TKxjoARhgm4aiakN7wUwReYijx0uDvyeK6ndw6bzjj3", "key": "mandate", "now": 2000000000, "leeway": 9999999999, "reason": "excessive leeway must not extend exp (§9.9)"}

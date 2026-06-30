@@ -123,14 +123,15 @@ def open_half(text, key, alg, enc):
 # Token-positional ops read the token from stdin (`-`), so a token starting
 # with `-` (the b64url alphabet) is never mistaken for a flag.
 def verify_ok(token, audience=None):
-    args = ["verify", "-", "-k", "mandate", "--now", "1000000000"]
+    args = ["clauses", "-", "-k", "mandate", "--now", "1000000000"]
     if audience:
         args += ["-a", audience]
     return run(args, check=False, stdin=token).returncode == 0
 
 
 def open_manifest_ok(token):
-    return run(["open-manifest", "-"], check=False, stdin=token).returncode == 0
+    # The vector op keyword stays `open-manifest`; the CLI subcommand is `claims`.
+    return run(["claims", "-"], check=False, stdin=token).returncode == 0
 
 
 def sep(enc):
@@ -214,6 +215,42 @@ def nan_float():
 def manifest_dup():
     # A manifest map (0xa2) with a duplicate -5 (iss) key.
     return bytes([0xA2]) + _entry(-5, "auth.example") + _entry(-5, "other")
+
+
+def disallowed_keytype():
+    # map(1) whose sole key is a zero-length byte string (0x40, major type 2):
+    # a top-level map-key type obsigil forbids — only non-negative integer and
+    # text-string keys are application keys (spec §13). Value is 0.
+    return bytes([0xA1, 0x40, 0x00])
+
+
+def invalid_utf8_text():
+    # map(1){ app key 0 -> text(1) carrying the byte 0xFF }: a CBOR text string
+    # (major type 3) MUST be well-formed UTF-8 (spec §7), and 0xFF is not.
+    return bytes([0xA1, 0x00, 0x61, 0xFF])
+
+
+def nested_byte_key():
+    # map(3){ 0 -> map(1){ h'00' -> 1 }, tid, exp }: the application value at
+    # key 0 is a NESTED map keyed by a 1-byte byte string (0x41 0x00, major
+    # type 2). A non-integer/text map key is forbidden at EVERY map depth, not
+    # just the half's top-level map (spec §7) — Go cannot represent a byte-slice
+    # map key — so this token MUST be rejected. The top-level keys (0, -1, -2)
+    # and the canonical ordering (0x00 < 0x20 < 0x21) are otherwise valid, so
+    # the violation is reachable only by recursing into the application value.
+    return (
+        bytes([0xA3])
+        + _entry(0, {bytes([0x00]): 1})
+        + _entry(-1, _tid())
+        + _entry(-2, 4000000000)
+    )
+
+
+def tid_in_manifest():
+    # A manifest map(2) carrying a mandate-only reserved key: -1/tid (16 bytes)
+    # beside -5/iss, canonically ordered (0x20 before 0x24). A manifest that
+    # carries tid is malformed, so the reader yields no claims (spec §13).
+    return bytes([0xA2]) + _entry(-1, _tid()) + _entry(-5, "x")
 
 
 _B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
@@ -322,6 +359,9 @@ neg("parse", ".", "both halves absent (bare separator)")
 neg("parse", ".0", "degenerate half: lone algorithm code, empty ciphertext")
 neg("parse", "0.", "degenerate half: manifest-side lone algorithm code, empty ciphertext")
 neg("parse", "abc0,0def", "single delimiter outside {., ~}: no valid separator")
+# An algorithm-code character outside the ALG set (0-9 / a-z, spec §3): take a
+# valid `.0<mandate>` token and replace its code `0` with an uppercase `A`.
+neg("parse", "." + "A" + valid[2:], "out-of-range algorithm-code character")
 # algorithm / length / text-encoding (verify) — unchanged by the CBOR model
 neg("verify", valid[:1] + "2" + valid[2:], "unrecognized algorithm code", key="mandate", now=1000000000)
 neg("verify", ".0AAAA", "half below the 17-byte floor", key="mandate", now=1000000000)
@@ -387,6 +427,10 @@ neg("verify", raw_token(trailing_bytes()), "trailing bytes after the CBOR map", 
 neg("verify", raw_token(nonshortest_len()), "non-shortest CBOR length header", key="mandate", now=1000000000)
 neg("verify", raw_token(nonshortest_float()), "non-shortest CBOR float (f64 for an f16-representable value)", key="mandate", now=1000000000)
 neg("verify", raw_token(nan_float()), "NaN application float (forbidden: no canonical bit pattern)", key="mandate", now=1000000000)
+# disallowed map-key type (top-level AND nested) and invalid UTF-8 text (spec §7)
+neg("verify", raw_token(disallowed_keytype()), "disallowed CBOR map-key type (byte string)", key="mandate", now=1000000000)
+neg("verify", raw_token(nested_byte_key()), "disallowed CBOR map-key type (nested byte string)", key="mandate", now=1000000000)
+neg("verify", raw_token(invalid_utf8_text()), "text string is not valid UTF-8", key="mandate", now=1000000000)
 # manifest (open-manifest)
 neg("open-manifest", manifest_token(octets({"role": "x"})), "manifest missing required iss")
 neg("open-manifest", manifest_token(octets(M_ISS), key="mandate"),
@@ -394,6 +438,9 @@ neg("open-manifest", manifest_token(octets(M_ISS), key="mandate"),
 _mani = manifest_token(octets(M_ISS))  # "<text>0."
 neg("open-manifest", _mani[:-2] + "=0.", "non-canonical b64: padding (manifest)")
 neg("open-manifest", manifest_token(manifest_dup().hex()), "non-canonical CBOR in manifest (duplicate map key)")
+# a reserved key in the wrong half: a manifest carrying tid is malformed, so
+# the keyless read yields no claims (spec §13)
+neg("open-manifest", manifest_token(tid_in_manifest().hex()), "reserved key in wrong half (tid in manifest)")
 # excessive clock-skew leeway must not extend exp (§9.9)
 neg("verify", mandate_token(octets({"exp": 1000, "tid": TID})),
     "excessive leeway must not extend exp (§9.9)",
@@ -401,9 +448,15 @@ neg("verify", mandate_token(octets({"exp": 1000, "tid": TID})),
 
 
 # --------------------------------------------------------------- self-check
+# The vector `op` keywords are the logical operations; the CLI renamed its
+# subcommands in v1.0 (verify -> clauses, open-manifest -> claims; parse is
+# unchanged), so map each op to its subcommand for the self-check invocation.
+OP_CMD = {"verify": "clauses", "open-manifest": "claims", "parse": "parse"}
+
+
 def op_rejects(row):
     op, token = row["op"], row["token"]
-    args = [op, "-"]
+    args = [OP_CMD[op], "-"]
     if op == "verify":
         args += ["-k", row.get("key", "mandate")]
         if "now" in row:

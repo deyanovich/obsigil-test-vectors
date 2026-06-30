@@ -110,13 +110,18 @@ Rejection is **uniform** (spec §9.5): an implementation MUST NOT signal
 *why* to the bearer. Through the obsigil CLI a rejection is exit code 1.
 Categories: malformed structure (separator count, an unrecognized
 separator, a degenerate half on either side), unrecognized/unsupported
-algorithm code, non-canonical text encoding (padding, length 1 mod 4,
-non-zero trailing bits, out-of-alphabet, uppercase/odd hex), a half
-below the 17-byte floor, authentication failure (a wrong key, including
-a manifest sealed under the wrong key), non-canonical CBOR in either
-half (a duplicate map key, keys out of canonical order, a non-shortest
-integer, length, or float, a `NaN`, an indefinite length, trailing
-bytes), an unrecognized negative key (obsigil's namespace — rejected
+algorithm code (or an algorithm-code character outside the ALG
+set, spec §3), non-canonical text encoding (padding, length 1 mod
+4, non-zero trailing bits, out-of-alphabet, uppercase/odd hex), a
+half below the 17-byte floor, authentication failure (a wrong key,
+including a manifest sealed under the wrong key), non-canonical
+CBOR in either half (a duplicate map key, keys out of canonical
+order, a non-shortest integer, length, or float, a `NaN`, an
+indefinite length, trailing bytes, a disallowed map-key type at
+any map depth — a byte string, nested or top-level, where only
+non-negative-integer and text keys are allowed — or a text string
+that is not valid UTF-8),
+an unrecognized negative key (obsigil's namespace — rejected
 fail-closed),
 a reserved field of the wrong CBOR type (a non-integer `exp` — text or
 float; an `aud` that is not a non-empty array of text strings; a
@@ -125,7 +130,9 @@ missing or non-UUIDv7 `tid` (wrong version — including the common
 UUIDv4 and UUIDv8 — a non-RFC-4122 variant, or a non-16-byte length),
 missing `exp`, expired `exp` (including a `now` past `exp` that an
 over-large but bounded `leeway` cannot extend), `aud` mismatch or empty
-`aud`, an empty mandate, and a manifest missing its required `iss`.
+`aud`, an empty mandate, a manifest missing its required `iss`, and a
+manifest carrying a mandate-only reserved key such as `tid` (which
+yields no claims).
 
 ## Generation
 
