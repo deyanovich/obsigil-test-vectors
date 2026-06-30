@@ -20,13 +20,13 @@
 {"op": "verify", "token": ".0OONlSwf3-8gVhhuvCpLs76tY4dk-MovZ9u3rA-5ho-piEwpRH11y-QEbkQ", "key": "mandate", "now": 1000000000, "reason": "empty aud array"}
 {"op": "verify", "token": ".0iyh7I6MKKmFJ3K7vr8Y16iH3uUEoRRk", "key": "mandate", "now": 1000000000, "reason": "missing tid"}
 {"op": "verify", "token": ".0CQyylZaoeHGc7CsNagYFz9lOVZPem9JXEYWhOJWRNjOvydyo7nXnv7g", "key": "mandate", "now": 1000000000, "reason": "tid is not a UUIDv7 (version 0)"}
-{"op": "verify", "token": ".0e5Ue1Vkxw0_ZNq-4GV_y3XaJVsBKKbYSeUv7z-6p1Z4KFLdjhMuCwEw", "key": "mandate", "now": 1000000000, "reason": "tid is version 7 but not the RFC 4122 variant (§11.3)"}
+{"op": "verify", "token": ".0e5Ue1Vkxw0_ZNq-4GV_y3XaJVsBKKbYSeUv7z-6p1Z4KFLdjhMuCwEw", "key": "mandate", "now": 1000000000, "reason": "tid is version 7 but not the RFC 4122 variant (Reserved fields tid, §8.2)"}
 {"op": "verify", "token": ".08VI7JiKteOJ0Oyb1AYWmU1K78FjNMmoKx1mL3El6s6QXuqsqZYmv4TU", "key": "mandate", "now": 1000000000, "reason": "tid is a UUIDv4 (version 4), not a UUIDv7"}
 {"op": "verify", "token": ".0YqTnLWdl7LlZmD8Y6_ytabLYnRGen0yu6-ucdnXO7QrDuDJeVNLRhpw", "key": "mandate", "now": 1000000000, "reason": "tid is a UUIDv8 (version 8), not a UUIDv7"}
 {"op": "verify", "token": ".04F2MBhNzl5udYbVu5meBadEiAs94kIliAjwC2d9cAQ_1dEoPlZUG1bc", "key": "mandate", "now": 1000000000, "reason": "tid is version 7 but the Microsoft variant (0b110), not RFC 4122"}
 {"op": "verify", "token": ".0sxZ-uoJUoeNDCAssmZhHtVrl0FAJpCI6MPzb1Be7TyybUW0", "key": "mandate", "now": 1000000000, "reason": "missing exp"}
 {"op": "verify", "token": "Ifjt1gPO2S2soNJQZjtP8Q8zDe5zvPxl2D2OuejeOQ0.", "key": "mandate", "now": 1000000000, "reason": "empty mandate"}
-{"op": "verify", "token": ".0U12pxd9KKJ4wpt8d68XTIeH5ol8NGEDQbzgGU60GkbewQ4RDXRrHbJ9Ah-uT2A", "key": "mandate", "now": 1000000000, "reason": "aud is a text string, not an array (§11.4)"}
+{"op": "verify", "token": ".0U12pxd9KKJ4wpt8d68XTIeH5ol8NGEDQbzgGU60GkbewQ4RDXRrHbJ9Ah-uT2A", "key": "mandate", "now": 1000000000, "reason": "aud is a text string, not an array (Reserved fields aud, §8.4)"}
 {"op": "verify", "token": ".0_FQ8vdXlf36kACAKrictmkBudA__goAbemRv5_fCnz4N6A", "key": "mandate", "now": 1000000000, "reason": "tid is a text string, not a 16-byte byte string"}
 {"op": "verify", "token": ".0m-61kcqoKEE4J1k6a3ugwGtAkURiwFwSnEhpjykVAw-n", "key": "mandate", "now": 1000000000, "reason": "tid is a byte string shorter than 16 bytes (8)"}
 {"op": "verify", "token": ".0Y_xuB4UTnwPqAsIvHtOE3-1M_RYs1cR2mOLdNZ_FxIgscBkXw_eQRdMpaxdbLe5a_3mi3kCO-ruebA", "key": "mandate", "now": 1000000000, "reason": "tid is a byte string longer than 16 bytes (32)"}
@@ -47,10 +47,11 @@
 {"op": "verify", "token": ".09HLm3Qv48t_s6QR4P2qLq3TtTa9bPlAqYyXX15efm1Mcih5w71Ng1-63Pw7jmIsNrKc", "key": "mandate", "now": 1000000000, "reason": "NaN application float (forbidden: no canonical bit pattern)"}
 {"op": "verify", "token": ".03fbhHYM9XWfgmC8HC-jRQtTllQ", "key": "mandate", "now": 1000000000, "reason": "disallowed CBOR map-key type (byte string)"}
 {"op": "verify", "token": ".0BTgk8EWUkAjQ0kH_8M2VcCIwwC6AYozqS8CZ4Qs2UXQ3C_nH9pkSj91VO15C7g", "key": "mandate", "now": 1000000000, "reason": "disallowed CBOR map-key type (nested byte string)"}
+{"op": "verify", "token": ".0XHsXnJaSNTycjKhzKSzQNXMc6glfly_7XAIjoLeTFjZX6yhRB5wTtJyJEa1e9rKLCdpVPVc", "key": "mandate", "now": 1000000000, "reason": "disallowed CBOR map-key type (bignum tag-2 integer)"}
 {"op": "verify", "token": ".0puo3Q7Ne4MJf1yf9oVs71CXbVNs", "key": "mandate", "now": 1000000000, "reason": "text string is not valid UTF-8"}
 {"op": "open-manifest", "token": "WoCcor2Kn6itheafyPbd-KczYbsmUhak0.", "reason": "manifest missing required iss"}
 {"op": "open-manifest", "token": "cv55m-dTtoiW2ee7GiPgv7zl-7czCdLjdMy8mLt2XA0.", "reason": "manifest sealed under the wrong key (authentication fails)"}
 {"op": "open-manifest", "token": "Ifjt1gPO2S2soNJQZjtP8Q8zDe5zvPxl2D2OuejeOQ=0.", "reason": "non-canonical b64: padding (manifest)"}
 {"op": "open-manifest", "token": "8Tgly3CE8h9gv_FCP6Lw_Q_Asc9oukSra7oXEhioLD6jUMVUT1Q0.", "reason": "non-canonical CBOR in manifest (duplicate map key)"}
 {"op": "open-manifest", "token": "W2ociNkF7ksCMPrfLOW11xeIz4yO1g6CDJNzQQJ8KHQUhRvfH3M0.", "reason": "reserved key in wrong half (tid in manifest)"}
-{"op": "verify", "token": ".0_zZzmoyJ7TKxjoARhgm4aiakN7wUwReYijx0uDvyeK6ndw6bzjj3", "key": "mandate", "now": 2000000000, "leeway": 9999999999, "reason": "excessive leeway must not extend exp (§9.9)"}
+{"op": "verify", "token": ".0_zZzmoyJ7TKxjoARhgm4aiakN7wUwReYijx0uDvyeK6ndw6bzjj3", "key": "mandate", "now": 2000000000, "leeway": 9999999999, "reason": "excessive leeway must not extend exp (Limits and robustness, §16.10)"}

@@ -252,6 +252,22 @@ def nested_byte_key():
     )
 
 
+def bignum_key():
+    # map(3){ <2**64> -> 1, tid, exp }: the application key is an integer that
+    # canonical CBOR §4.2 can only encode as a tag-2 bignum — major type 0 maxes
+    # at 2**64-1 — i.e. 0xC2 0x49 01 00*8. A tag is not an allowed map-key type
+    # (only non-negative integer and text-string keys, the Serialization
+    # section's key-type rule, §7), so the verifier MUST reject it. The keys are
+    # in canonical order: 0x20 (-1) < 0x21 (-2) < 0xC2 (the tag-2 key).
+    bignum = bytes([0xC2, 0x49, 0x01]) + bytes(8)  # tag(2) + bstr(9){01 00*8} = 2**64
+    return (
+        bytes([0xA3])
+        + _entry(-1, _tid())
+        + _entry(-2, 4000000000)
+        + bignum + cbor(1)
+    )
+
+
 def tid_in_manifest():
     # A manifest map(2) carrying a mandate-only reserved key: -1/tid (16 bytes)
     # beside -5/iss, canonically ordered (0x20 before 0x24). A manifest that
@@ -440,6 +456,7 @@ neg("verify", raw_token(nan_float()), "NaN application float (forbidden: no cano
 # disallowed map-key type (top-level AND nested) and invalid UTF-8 text (the Serialization section, §7)
 neg("verify", raw_token(disallowed_keytype()), "disallowed CBOR map-key type (byte string)", key="mandate", now=1000000000)
 neg("verify", raw_token(nested_byte_key()), "disallowed CBOR map-key type (nested byte string)", key="mandate", now=1000000000)
+neg("verify", raw_token(bignum_key()), "disallowed CBOR map-key type (bignum tag-2 integer)", key="mandate", now=1000000000)
 neg("verify", raw_token(invalid_utf8_text()), "text string is not valid UTF-8", key="mandate", now=1000000000)
 # manifest (open-manifest)
 neg("open-manifest", manifest_token(octets({"role": "x"})), "manifest missing required iss")
