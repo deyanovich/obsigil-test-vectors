@@ -1,7 +1,7 @@
 # obsigil-test-vectors
 
 Cross-language test vectors for the
-[obsigil](https://gitlab.com/uvar/crypt/obsigil/spec) mandate-token
+[obsigil](https://obsigil.org/) mandate-token
 format — a JWT-like token split into a public **manifest** and an
 encrypted **mandate**, each an authenticated, deterministically-sealed
 ciphertext (AES-SIV / AES-GCM-SIV) rendered as `b64` or `hex` text.
