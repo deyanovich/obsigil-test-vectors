@@ -26,14 +26,16 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TID = "019ed29a-378d-72f0-b462-4929cd2bfcad"  # a fixed UUIDv7
 NIL = "00000000-0000-0000-0000-000000000000"  # version 0 — not a v7
 # Version field 7 but variant nibble 0 (NCS, 0b00) — not a well-formed UUIDv7
-# (spec §11.3 requires version 7 AND the RFC 4122 variant 0b10).
+# (the Reserved fields `tid`, spec §8.2, requires version 7 AND the
+# RFC 4122 variant 0b10).
 TID_BADVAR = "019ed29a-378d-72f0-0462-4929cd2bfcad"
 V4 = "00000000-0000-4000-8000-000000000000"  # version 4 (the common UUID)
 V8 = "00000000-0000-8000-8000-000000000000"  # version 8
 # Version 7 but the Microsoft variant (top bits 0b110), not RFC 4122 (0b10).
 V7_MSVAR = "019ed29a-378d-72f0-c462-4929cd2bfcad"
 
-# Reserved field -> negative integer key (spec §11, §7).
+# Reserved field -> negative integer key (the Reserved fields section,
+# spec §8; sign-namespaced per the Serialization section, §7).
 RKEY = {"tid": -1, "exp": -2, "aud": -3, "sub": -4, "iss": -5}
 RESERVED = set(RKEY)
 
@@ -193,7 +195,8 @@ def trailing_bytes():
 
 def nonshortest_len():
     # tid (16 bytes) with a non-shortest length head (0x58 0x10, a 1-byte
-    # length) instead of the direct 0x50 — non-canonical (spec §7).
+    # length) instead of the direct 0x50 — non-canonical (the
+    # Serialization section, §7).
     return bytes([0xA2]) + cbor(-1) + bytes([0x58, 0x10]) + _tid() + _entry(-2, 4000000000)
 
 
@@ -207,7 +210,8 @@ def nonshortest_float():
 def nan_float():
     # An application float that is NaN — the canonical quiet NaN, float16
     # 0xf9 0x7e00. NaN has no single canonical bit pattern across encoders, so
-    # obsigil forbids it (spec §7); even this form MUST be rejected.
+    # obsigil forbids it (the Serialization section, §7); even this
+    # form MUST be rejected.
     nan = bytes([0xF9, 0x7E, 0x00])
     return bytes([0xA3]) + _entry(-1, _tid()) + _entry(-2, 4000000000) + cbor("score") + nan
 
@@ -220,13 +224,15 @@ def manifest_dup():
 def disallowed_keytype():
     # map(1) whose sole key is a zero-length byte string (0x40, major type 2):
     # a top-level map-key type obsigil forbids — only non-negative integer and
-    # text-string keys are application keys (spec §13). Value is 0.
+    # text-string keys are application keys (the Serialization section's
+    # key-type rule, §7). Value is 0.
     return bytes([0xA1, 0x40, 0x00])
 
 
 def invalid_utf8_text():
     # map(1){ app key 0 -> text(1) carrying the byte 0xFF }: a CBOR text string
-    # (major type 3) MUST be well-formed UTF-8 (spec §7), and 0xFF is not.
+    # (major type 3) MUST be well-formed UTF-8 (the Serialization
+    # section, §7), and 0xFF is not.
     return bytes([0xA1, 0x00, 0x61, 0xFF])
 
 
@@ -234,7 +240,7 @@ def nested_byte_key():
     # map(3){ 0 -> map(1){ h'00' -> 1 }, tid, exp }: the application value at
     # key 0 is a NESTED map keyed by a 1-byte byte string (0x41 0x00, major
     # type 2). A non-integer/text map key is forbidden at EVERY map depth, not
-    # just the half's top-level map (spec §7) — Go cannot represent a byte-slice
+    # just the half's top-level map (the Serialization section, §7) — Go cannot represent a byte-slice
     # map key — so this token MUST be rejected. The top-level keys (0, -1, -2)
     # and the canonical ordering (0x00 < 0x20 < 0x21) are otherwise valid, so
     # the violation is reachable only by recursing into the application value.
@@ -249,7 +255,8 @@ def nested_byte_key():
 def tid_in_manifest():
     # A manifest map(2) carrying a mandate-only reserved key: -1/tid (16 bytes)
     # beside -5/iss, canonically ordered (0x20 before 0x24). A manifest that
-    # carries tid is malformed, so the reader yields no claims (spec §13).
+    # carries tid is malformed, so the reader yields no claims (the
+    # Reserved fields section, §8).
     return bytes([0xA2]) + _entry(-1, _tid()) + _entry(-5, "x")
 
 
@@ -260,7 +267,8 @@ def set_b64_trailing(token):
     """Set an unused trailing bit of the final b64 symbol of a `.0<half>`
     token while preserving its significant bits, so a lenient decoder would
     decode the identical ciphertext (and wrongly accept); a strict decoder
-    rejects the non-zero trailing bits (spec §3)."""
+    rejects the non-zero trailing bits (the Token structure section's
+    strict b64 codec, §4)."""
     half = token[2:]
     unused = {2: 4, 3: 2}[len(half) % 4]  # symbols mod 4 -> unused low bits
     idx = _B64.index(token[-1])
@@ -319,7 +327,8 @@ positives = [
                                         "aud": ["api", "billing"], "sub": "u42",
                                         "role": "admin"}},
     ),
-    # Manifest advisory exp (§11.1) + mandate iss clause (§11.2).
+    # Manifest advisory exp (the Reserved fields `exp`, §8.3) + mandate
+    # iss clause (the Reserved fields `iss`, §8.6).
     positive(
         "b64",
         manifest={"alg": "0", "fields": {"iss": "auth.example", "exp": 4100000000}},
@@ -359,7 +368,8 @@ neg("parse", ".", "both halves absent (bare separator)")
 neg("parse", ".0", "degenerate half: lone algorithm code, empty ciphertext")
 neg("parse", "0.", "degenerate half: manifest-side lone algorithm code, empty ciphertext")
 neg("parse", "abc0,0def", "single delimiter outside {., ~}: no valid separator")
-# An algorithm-code character outside the ALG set (0-9 / a-z, spec §3): take a
+# An algorithm-code character outside the ALG set (0-9 / a-z, the Token
+# structure section, §4): take a
 # valid `.0<mandate>` token and replace its code `0` with an uppercase `A`.
 neg("parse", "." + "A" + valid[2:], "out-of-range algorithm-code character")
 # algorithm / length / text-encoding (verify) — unchanged by the CBOR model
@@ -385,7 +395,7 @@ neg("verify", mandate_token(octets({"exp": 4000000000})), "missing tid", key="ma
 neg("verify", mandate_token(octets({"exp": 4000000000, "tid": NIL})),
     "tid is not a UUIDv7 (version 0)", key="mandate", now=1000000000)
 neg("verify", mandate_token(octets({"exp": 4000000000, "tid": TID_BADVAR})),
-    "tid is version 7 but not the RFC 4122 variant (§11.3)", key="mandate", now=1000000000)
+    "tid is version 7 but not the RFC 4122 variant (Reserved fields tid, §8.2)", key="mandate", now=1000000000)
 neg("verify", mandate_token(octets({"exp": 4000000000, "tid": V4})),
     "tid is a UUIDv4 (version 4), not a UUIDv7", key="mandate", now=1000000000)
 neg("verify", mandate_token(octets({"exp": 4000000000, "tid": V8})),
@@ -394,9 +404,9 @@ neg("verify", mandate_token(octets({"exp": 4000000000, "tid": V7_MSVAR})),
     "tid is version 7 but the Microsoft variant (0b110), not RFC 4122", key="mandate", now=1000000000)
 neg("verify", mandate_token(octets({"tid": TID})), "missing exp", key="mandate", now=1000000000)
 neg("verify", manifest_token(octets(M_ISS)), "empty mandate", key="mandate", now=1000000000)
-# reserved-clause type strictness (verify): wrong CBOR types (spec §9.9)
+# reserved-clause type strictness (verify): wrong CBOR types (the Reserved fields section, §8)
 neg("verify", map_token({RKEY["exp"]: 4000000000, RKEY["tid"]: _tid(), RKEY["aud"]: "api"}),
-    "aud is a text string, not an array (§11.4)", key="mandate", now=1000000000)
+    "aud is a text string, not an array (Reserved fields aud, §8.4)", key="mandate", now=1000000000)
 neg("verify", map_token({RKEY["exp"]: 4000000000, RKEY["tid"]: "not-bytes"}),
     "tid is a text string, not a 16-byte byte string", key="mandate", now=1000000000)
 neg("verify", map_token({RKEY["exp"]: 4000000000, RKEY["tid"]: _tid()[:8]}),
@@ -415,10 +425,10 @@ neg("verify", map_token({RKEY["exp"]: 4000000000, RKEY["tid"]: _tid(), RKEY["sub
     "sub is an integer, not a text string", key="mandate", now=1000000000)
 neg("verify", map_token({RKEY["exp"]: 4000000000, RKEY["tid"]: _tid(), RKEY["aud"]: [1]}),
     "aud is an array containing a non-text element", key="mandate", now=1000000000)
-# sign-split namespace (spec §7): an unrecognized negative key fails closed
+# sign-split namespace (the Serialization section, §7): an unrecognized negative key fails closed
 neg("verify", map_token({-9: 1, RKEY["exp"]: 4000000000, RKEY["tid"]: _tid()}),
     "unrecognized negative key fails closed", key="mandate", now=1000000000)
-# non-canonical CBOR (spec §7, §9.9)
+# non-canonical CBOR (the Serialization section, §7; the limits-and-robustness rule, §16.10)
 neg("verify", raw_token(dup_key()), "duplicate CBOR map key", key="mandate", now=1000000000)
 neg("verify", raw_token(unsorted_keys()), "CBOR map keys out of canonical order", key="mandate", now=1000000000)
 neg("verify", raw_token(nonshortest_int()), "non-shortest CBOR integer", key="mandate", now=1000000000)
@@ -427,7 +437,7 @@ neg("verify", raw_token(trailing_bytes()), "trailing bytes after the CBOR map", 
 neg("verify", raw_token(nonshortest_len()), "non-shortest CBOR length header", key="mandate", now=1000000000)
 neg("verify", raw_token(nonshortest_float()), "non-shortest CBOR float (f64 for an f16-representable value)", key="mandate", now=1000000000)
 neg("verify", raw_token(nan_float()), "NaN application float (forbidden: no canonical bit pattern)", key="mandate", now=1000000000)
-# disallowed map-key type (top-level AND nested) and invalid UTF-8 text (spec §7)
+# disallowed map-key type (top-level AND nested) and invalid UTF-8 text (the Serialization section, §7)
 neg("verify", raw_token(disallowed_keytype()), "disallowed CBOR map-key type (byte string)", key="mandate", now=1000000000)
 neg("verify", raw_token(nested_byte_key()), "disallowed CBOR map-key type (nested byte string)", key="mandate", now=1000000000)
 neg("verify", raw_token(invalid_utf8_text()), "text string is not valid UTF-8", key="mandate", now=1000000000)
@@ -439,11 +449,11 @@ _mani = manifest_token(octets(M_ISS))  # "<text>0."
 neg("open-manifest", _mani[:-2] + "=0.", "non-canonical b64: padding (manifest)")
 neg("open-manifest", manifest_token(manifest_dup().hex()), "non-canonical CBOR in manifest (duplicate map key)")
 # a reserved key in the wrong half: a manifest carrying tid is malformed, so
-# the keyless read yields no claims (spec §13)
+# the keyless read yields no claims (the Reserved fields section, §8)
 neg("open-manifest", manifest_token(tid_in_manifest().hex()), "reserved key in wrong half (tid in manifest)")
-# excessive clock-skew leeway must not extend exp (§9.9)
+# excessive clock-skew leeway must not extend exp (the limits-and-robustness rule, §16.10)
 neg("verify", mandate_token(octets({"exp": 1000, "tid": TID})),
-    "excessive leeway must not extend exp (§9.9)",
+    "excessive leeway must not extend exp (Limits and robustness, §16.10)",
     key="mandate", now=2000000000, leeway=9999999999)
 
 

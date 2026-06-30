@@ -24,7 +24,8 @@ for conformance testing only. Vectors reference them by role.
 
 ### Manifest key (`manifest`)
 
-The public 64-byte manifest key pinned by the spec (§4.2). The manifest
+The public 64-byte manifest key pinned by the spec's Construction
+section (§5.2). The manifest
 half is sealed *keyless* under it — anyone can open and forge a
 manifest. Hex (128 chars):
 
@@ -34,7 +35,8 @@ manifest. Hex (128 chars):
 
 ### Mandate key (`mandate`)
 
-A 64-byte secret mandate key, distinct from the manifest key (§4.1),
+A 64-byte secret mandate key, distinct from the manifest key (the
+Construction section, §5.1),
 defined for these vectors as `SHA-512("obsigil test mandate key v1")`.
 Hex (128 chars):
 
@@ -44,7 +46,7 @@ a341adc813cfa493412cda5900fa4ec83f20a6cdea4fe5c759f7ccdb7ffbec51e01d2ce90c592909
 
 Code `0` (AES-SIV) uses the full 64-byte key directly. Code `1`
 (AES-GCM-SIV) derives a 32-byte key with `HKDF-Expand` (info `gcmsiv`,
-no Extract; spec §5.1).
+no Extract; the Algorithm registry's key-material derivation, §6.1).
 
 ## Positive vectors
 
@@ -68,7 +70,8 @@ serializer (the octets are sealed as given):
   §4.2) with reserved fields at negative integer keys (`tid` -1, `exp`
   -2, `aud` -3, `sub` -4, `iss` -5) and application data at non-negative
   integer / text-string keys. `fields` is a **non-normative** decode for
-  the reader. `tid` is carried as its 16-byte binary form (§11.3).
+  the reader. `tid` is carried as its 16-byte binary form (the
+Reserved fields `tid`, §8.2).
 - `token` — the exact token string.
 
 A conforming implementation checks whichever direction it performs:
@@ -102,16 +105,19 @@ Each line is an input a conforming implementation MUST reject:
 - `now` / `audience` / `leeway` — optional `verify` policy
   (NumericDate; verifier identifier; clock-skew leeway in
   seconds). A conformant verifier bounds `leeway` by a small
-  configured maximum (spec §9.9), so a vector pairing a large
+  configured maximum (the limits-and-robustness rule of the Security
+  Considerations, §16.10), so a vector pairing a large
   `leeway` with a `now` far past `exp` is still rejected.
 - `reason` — informative; the rule being exercised.
 
-Rejection is **uniform** (spec §9.5): an implementation MUST NOT signal
+Rejection is **uniform** (the uniform-failure rule of the Security
+Considerations, §16.6): an implementation MUST NOT signal
 *why* to the bearer. Through the obsigil CLI a rejection is exit code 1.
 Categories: malformed structure (separator count, an unrecognized
 separator, a degenerate half on either side), unrecognized/unsupported
 algorithm code (or an algorithm-code character outside the ALG
-set, spec §3), non-canonical text encoding (padding, length 1 mod
+set, the Token structure section, §4), non-canonical text encoding
+(padding, length 1 mod
 4, non-zero trailing bits, out-of-alphabet, uppercase/odd hex), a
 half below the 17-byte floor, authentication failure (a wrong key,
 including a manifest sealed under the wrong key), non-canonical
@@ -146,7 +152,7 @@ OBSIGIL_BIN=/path/to/obsigil python3 tools/generate.py
 ```
 
 The vectors are the canonical reference, not any single implementation
-(spec §10).
+(the Conformance and test vectors section, §13).
 
 ## License
 
